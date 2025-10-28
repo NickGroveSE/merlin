@@ -33,6 +33,10 @@ type OWDataResponse struct {
 	Data      []OWHero  `json:"data"`
 }
 
+func NewOverwatchService() *OverwatchService {
+	return &OverwatchService{}
+}
+
 func (o *OverwatchService) Scrape(filters OverwatchFilters) ([]OWHero, error) {
 	// Build the URL with query parameters
 	url := o.buildURL(filters)

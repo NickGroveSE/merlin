@@ -108,6 +108,7 @@
         <div class="tooltip-stat">Win Rate: {{ tooltip.data.WinRate }}%</div>
       </div>
     </div>
+    <div id="capture-btn" @click="triggerCapture">Capture Screen</div>
   </div>
 </template>
 
@@ -421,6 +422,10 @@ export default {
         data: null
       };
       this.hoveredHero = null;
+    },
+    triggerCapture() {
+        // Emit to parent component
+        this.$emit('capture-triggered');
     }
   }
 };
@@ -581,5 +586,33 @@ export default {
     r: 18;
     opacity: 0;
   }
+}
+
+#capture-btn {
+  width: 180px;
+  height: min-content;
+  padding: 10px 24px;
+  margin: 20px auto 0 auto;
+  background: linear-gradient(135deg, #f9a826 0%, #06b6d4 100%);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(249, 168, 38, 0.4);
+}
+
+#capture-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(249, 168, 38, 0.6);
+}
+
+#capture-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(249, 168, 38, 0.4);
 }
 </style>

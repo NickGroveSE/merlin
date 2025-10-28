@@ -22,6 +22,12 @@ var assets embed.FS
 // logs any error that might occur.
 func main() {
 
+	// Create OverwatchService first
+	overwatchService := NewOverwatchService()
+
+	// Pass it to CaptureService
+	captureService := NewCaptureService(overwatchService)
+
 	// Create a new Wails application by providing the necessary options.
 	// Variables 'Name' and 'Description' are for application metadata.
 	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
@@ -31,8 +37,8 @@ func main() {
 		Name:        "merlin-ow",
 		Description: "A demo of using raw HTML & CSS",
 		Services: []application.Service{
-			application.NewService(&GreetService{}),
-			application.NewService(&OverwatchService{}),
+			application.NewService(overwatchService),
+			application.NewService(captureService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

@@ -125,6 +125,22 @@ export default {
       }
     }
   },
+  watch: {
+    queryParams: {
+      handler(newParams) {
+        // Update filters when queryParams prop changes
+        this.filters = {
+          role: newParams.role,
+          input: newParams.input,
+          gameMode: newParams.gameMode,
+          rankTier: newParams.rankTier,
+          map: newParams.map,
+          region: newParams.region
+        };
+      },
+      deep: true  // Watch nested properties
+    }
+  },
   methods: {
     onGameModeChange() {
       // Reset rank tier when switching to Quick Play

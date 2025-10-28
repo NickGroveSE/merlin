@@ -1,7 +1,7 @@
 <script>
 import CompassFilters from './components/CompassFilters.vue';
 import HeroCompass from './components/HeroCompass.vue';
-import { OverwatchService } from "../bindings/changeme"
+import { OverwatchService, CaptureService } from "../bindings/changeme"
 
 export default {
   name: 'App',
@@ -41,6 +41,29 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async handleCaptureTrigger() {
+      console.log('Begin Capturing Screen');
+      
+      this.loading = true;
+      try {
+        const result = await CaptureService.Capture();
+        console.log('Service Result:', result);
+        this.heroData = result[0];
+        this.defaultFilters = {
+          role: result[1].role,
+          input: result[1].input,
+          gameMode: result[1].gameMode,
+          rankTier: result[1].rankTier,
+          map: result[1].map,
+          region: result[1].region
+        };
+        console.log(this.defaultFilters)
+      } catch (err) {
+        console.error('Error Scraping:', err);
+      } finally {
+        this.loading = false;
+      }
     }
   }
 }
@@ -48,7 +71,7 @@ export default {
 
 <template>
   <div class="container">
-    <HeroCompass v-if="heroData" class="component" id="compass" :heroData="heroData"/>
+    <HeroCompass v-if="heroData" class="component" id="compass" :heroData="heroData" @capture-triggered="handleCaptureTrigger"/>
     <CompassFilters class="component" :queryParams="defaultFilters" @filters-applied="handleFiltersApplied"/>
   </div>
 </template>
@@ -70,6 +93,6 @@ export default {
   }
 
   #compass {
-    margin: 0 3rem 0 0;
+    margin: 0 3rem 3rem 0;
   }
 </style>
