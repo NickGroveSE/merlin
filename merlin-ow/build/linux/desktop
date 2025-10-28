@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=My Product
+Comment=My Product Description
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/merlin-ow.exe %u
+Terminal=false
+Type=Application
+Icon=merlin-ow.exe
+Categories=Utility;
+StartupWMClass=merlin-ow.exe
+
+ 

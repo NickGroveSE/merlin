@@ -1,0 +1,9 @@
+{
+  "go.toolsManagement.autoUpdate": true,
+  "gopls": {
+    "build.buildFlags": ["-tags=dev"]
+  },
+  "files.associations": {
+    "*.vue": "vue"
+  }
+}
