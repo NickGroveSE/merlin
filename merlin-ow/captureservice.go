@@ -16,5 +16,7 @@ func (c *CaptureService) Capture() ([]OWHero, OverwatchFilters, error) {
 
 	heroes, _ := c.overwatchService.Scrape(captureFilters)
 
+	captureHandler()
+
 	return heroes, captureFilters, nil
 }

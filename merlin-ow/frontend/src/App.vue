@@ -1,7 +1,7 @@
 <script>
 import CompassFilters from './components/CompassFilters.vue';
 import HeroCompass from './components/HeroCompass.vue';
-import { OverwatchService, CaptureService } from "../bindings/changeme"
+import { OverwatchService, CaptureService } from "../bindings/merlin-ow"
 
 export default {
   name: 'App',
@@ -70,7 +70,7 @@ export default {
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" :class="{'disable-click': loading}">
     <HeroCompass v-if="heroData" class="component" id="compass" :heroData="heroData" @capture-triggered="handleCaptureTrigger"/>
     <CompassFilters class="component" :queryParams="defaultFilters" @filters-applied="handleFiltersApplied"/>
   </div>
@@ -90,9 +90,26 @@ export default {
   .component {
     display: inline-block;
     vertical-align: top;
+    
   }
 
   #compass {
     margin: 0 3rem 3rem 0;
+  }
+
+  .disable-click {
+    position: relative;
+  }
+
+  .disable-click::before {
+    pointer-events: none;
+    content: ''; /* Required for pseudo-elements */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.2); /* Translucent black overlay */
+    z-index: 1; /* Place the overlay behind the content if needed */
   }
 </style>

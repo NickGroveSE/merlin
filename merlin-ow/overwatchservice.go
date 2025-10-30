@@ -74,7 +74,7 @@ func (o *OverwatchService) buildURL(filters OverwatchFilters) string {
 	baseURL := "https://api.metatrack.ing/overwatch"
 
 	// Build query parameters
-	url := fmt.Sprintf("%s?role=%s&input=%s&gameMode=%s&map=%s&region=%s",
+	url := fmt.Sprintf("%s?role=%s&input=%s&queue=%s&map=%s&region=%s",
 		baseURL,
 		filters.Role,
 		filters.Input,
@@ -85,7 +85,7 @@ func (o *OverwatchService) buildURL(filters OverwatchFilters) string {
 
 	// Add rankTier if it exists
 	if filters.RankTier != "0" {
-		url += fmt.Sprintf("&rankTier=%s", filters.RankTier)
+		url += fmt.Sprintf("&rank=%s", filters.RankTier)
 	}
 
 	return url
