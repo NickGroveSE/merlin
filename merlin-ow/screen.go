@@ -5,44 +5,47 @@ import (
 	"image"
 	"image/png"
 	"os"
-	"path/filepath"
+
+	// "path/filepath"
+	// "time"
 	"unsafe"
 
 	"github.com/kbinani/screenshot"
 	"golang.org/x/sys/windows"
 )
 
-func captureHandler() {
+func capture() (string, error) {
 	windowTitle := "Overwatch" // 👈 change this to your target window title
 
 	img, err := captureWindowByTitle(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return
+		return "", err
 	}
 
 	// --- Ensure temp folder exists ---
 	outputDir := "temp"
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		fmt.Println("Failed to create temp folder:", err)
-		return
+		return "", err
 	}
 
-	outputPath := filepath.Join(outputDir, "window_capture.png")
+	outputPath, filename := generatePath(outputDir, "window_capture_")
 
 	file, err := os.Create(outputPath)
 	if err != nil {
 		fmt.Println("Failed to create file:", err)
-		return
+		return "", err
 	}
 	defer file.Close()
 
 	if err := png.Encode(file, img); err != nil {
 		fmt.Println("Failed to encode PNG:", err)
-		return
+		return "", err
 	}
 
 	fmt.Printf("✅ Saved %s successfully\n", outputPath)
+	return filename, nil
 }
 
 func captureWindowByTitle(title string) (*image.RGBA, error) {
@@ -67,11 +70,22 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 		return nil, fmt.Errorf("failed to get window rect")
 	}
 
-	bounds := image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
-	fmt.Printf("Capturing window %q bounds: %+v\n", title, bounds)
+	// --- Calculate top-right quadrant ---
+	width := int(rect.Right - rect.Left)
+	height := int(rect.Bottom - rect.Top)
+
+	// Top-right quarter of the window
+	topRightBounds := image.Rect(
+		int(rect.Left)+width/3,  // Start from horizontal midpoint
+		int(rect.Top),           // Start from top
+		int(rect.Right)-width/3, // Go to right edge
+		int(rect.Top)+height,    // Go to vertical midpoint
+	)
+
+	fmt.Printf("Capturing top-right of window %q bounds: %+v\n", title, topRightBounds)
 
 	// --- Capture that screen region ---
-	img, err := screenshot.CaptureRect(bounds)
+	img, err := screenshot.CaptureRect(topRightBounds)
 	if err != nil {
 		return nil, fmt.Errorf("capture failed: %w", err)
 	}

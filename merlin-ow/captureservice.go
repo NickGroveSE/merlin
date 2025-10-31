@@ -1,5 +1,12 @@
 package main
 
+import (
+	"fmt"
+	"log"
+	"os"
+	// "time"
+)
+
 type CaptureService struct {
 	overwatchService *OverwatchService
 }
@@ -14,9 +21,45 @@ func (c *CaptureService) Capture() ([]OWHero, OverwatchFilters, error) {
 
 	captureFilters := OverwatchFilters{Role: "Support", Input: "PC", GameMode: "0", RankTier: "", Map: "new-queen-street", Region: "Americas"}
 
-	heroes, _ := c.overwatchService.Scrape(captureFilters)
+	// heroes, _ := c.overwatchService.Scrape(captureFilters)
 
-	captureHandler()
+	hero := OWHero{
+		Name:     "Ana",
+		Color:    "#FF0000",
+		Image:    "",
+		PickRate: 51.0,
+		WinRate:  51.0,
+	}
+
+	heroes := []OWHero{hero}
+
+	// for {
+
+	filename, err := capture()
+	if err != nil {
+		log.Fatal("OCR failed:", err)
+	}
+	imagePath := "temp/" + filename
+	grayFilename, _ := processImage(imagePath)
+	fmt.Println(grayFilename)
+
+	analyze(imagePath)
+
+	// c.removeFile(imagePath)
+	// 	time.Sleep(time.Second)
+	// }
 
 	return heroes, captureFilters, nil
+}
+
+func (c *CaptureService) removeFile(imagePath string) {
+
+	err := os.Remove(imagePath)
+	if err != nil {
+		log.Fatalf("Error removing file: %v", err)
+		return
+	}
+
+	log.Printf("File %s removed successfully", imagePath)
+
 }
