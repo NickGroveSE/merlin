@@ -3,49 +3,22 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/png"
-	"os"
-
-	// "path/filepath"
-	// "time"
 	"unsafe"
 
 	"github.com/kbinani/screenshot"
 	"golang.org/x/sys/windows"
 )
 
-func capture() (string, error) {
+func capture() (*image.RGBA, error) {
 	windowTitle := "Overwatch" // 👈 change this to your target window title
 
 	img, err := captureWindowByTitle(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return "", err
+		return nil, err
 	}
 
-	// --- Ensure temp folder exists ---
-	outputDir := "temp"
-	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
-		fmt.Println("Failed to create temp folder:", err)
-		return "", err
-	}
-
-	outputPath, filename := generatePath(outputDir, "window_capture_")
-
-	file, err := os.Create(outputPath)
-	if err != nil {
-		fmt.Println("Failed to create file:", err)
-		return "", err
-	}
-	defer file.Close()
-
-	if err := png.Encode(file, img); err != nil {
-		fmt.Println("Failed to encode PNG:", err)
-		return "", err
-	}
-
-	fmt.Printf("✅ Saved %s successfully\n", outputPath)
-	return filename, nil
+	return img, nil
 }
 
 func captureWindowByTitle(title string) (*image.RGBA, error) {
@@ -76,10 +49,10 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 
 	// Top-right quarter of the window
 	topRightBounds := image.Rect(
-		int(rect.Left)+width/3,  // Start from horizontal midpoint
-		int(rect.Top),           // Start from top
-		int(rect.Right)-width/3, // Go to right edge
-		int(rect.Top)+height,    // Go to vertical midpoint
+		int(rect.Left),        // Start from horizontal midpoint
+		int(rect.Top),         // Start from top
+		int(rect.Right)+width, // Go to right edge
+		int(rect.Top)+height,  // Go to vertical midpoint
 	)
 
 	fmt.Printf("Capturing top-right of window %q bounds: %+v\n", title, topRightBounds)

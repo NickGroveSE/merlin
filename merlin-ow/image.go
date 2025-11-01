@@ -4,72 +4,46 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
-	"log"
-	"os"
 	"path/filepath"
 	"time"
+
+	contrast "github.com/hawx/img/contrast"
+	// sharpen "github.com/hawx/img/sharpen"
 )
 
-func processImage(imagePath string) (string, error) {
-	infile, err := os.Open(imagePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer infile.Close()
+func processImage(img *image.RGBA) (image.Image, error) {
 
-	// Decode the image
-	img, _, err := image.Decode(infile)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// processedImg := sharpen.UnsharpMask(contrast.Adjust(grayscale(img), 20), 3, 2.5, 2.5, 0.0)
+	processedImg := contrast.Adjust(grayscale(img), 20)
+
+	return processedImg, nil
+}
+
+func grayscale(img image.Image) *image.Gray {
 
 	bounds := img.Bounds()
 	grayImg := image.NewGray(bounds)
 
-	// Iterate through each pixel and convert to grayscale
+	if rgba, ok := img.(*image.RGBA); ok {
+		// Fast memory copy for RGBA
+		idx := 0
+		for i := 0; i < len(rgba.Pix); i += 4 {
+			r, g, b := rgba.Pix[i], rgba.Pix[i+1], rgba.Pix[i+2]
+			grayImg.Pix[idx] = uint8((19595*uint32(r) + 38470*uint32(g) + 7471*uint32(b) + 1<<15) >> 16)
+			idx++
+		}
+		return grayImg
+	}
+
+	// Fallback
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			originalColor := img.At(x, y)
-			grayColor := color.GrayModel.Convert(originalColor)
-			grayImg.Set(x, y, grayColor)
+			grayImg.Set(x, y, color.GrayModel.Convert(img.At(x, y)))
 		}
 	}
+	return grayImg
 
-	// --- Ensure temp folder exists ---
-	outputDir := "temp"
-	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
-		fmt.Println("Failed to create temp folder:", err)
-		return "", err
-	}
-
-	outputPath, filename := generatePath(outputDir, "window_capture_grayscale_")
-
-	file, err := os.Create(outputPath)
-	if err != nil {
-		fmt.Println("Failed to create file:", err)
-		return "", err
-	}
-	defer file.Close()
-
-	if err := png.Encode(file, grayImg); err != nil {
-		fmt.Println("Failed to encode PNG:", err)
-		return "", err
-	}
-
-	return filename, nil
 }
-
-// func openImage(imagePath string) image.Image {
-// 	// Open the input image file
-
-// 	return img
-// }
-
-// func createImageFile(imagePath string) (*os.File, error) {
-
-// 	return file, nil
-// }
 
 func generatePath(outputDir string, prefix string) (string, string) {
 

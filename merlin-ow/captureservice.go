@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	// "time"
@@ -35,15 +34,13 @@ func (c *CaptureService) Capture() ([]OWHero, OverwatchFilters, error) {
 
 	// for {
 
-	filename, err := capture()
+	img, err := capture()
 	if err != nil {
 		log.Fatal("OCR failed:", err)
 	}
-	imagePath := "temp/" + filename
-	grayFilename, _ := processImage(imagePath)
-	fmt.Println(grayFilename)
+	processedImg, _ := processImage(img)
 
-	analyze(imagePath)
+	analyze(processedImg)
 
 	// c.removeFile(imagePath)
 	// 	time.Sleep(time.Second)

@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/png"
+	"io/ioutil"
 	"log"
-
-	// "os"
+	"os"
 	"os/exec"
 	"strings"
-	// "time"
 )
 
-func analyze(imagePath string) {
+func analyze(img image.Image) (string, error) {
 
 	// replacer := strings.NewReplacer(
 	// 	" ", "-",
@@ -20,8 +21,22 @@ func analyze(imagePath string) {
 	// 	"ö", "o",
 	// )
 
+	tmpFile, err := ioutil.TempFile("", "ocr-*.png")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	// Encode image to temp file
+	if err := png.Encode(tmpFile, img); err != nil {
+		tmpFile.Close()
+		return "", fmt.Errorf("failed to encode image: %w", err)
+	}
+	tmpFile.Close()
+
 	// Call tesseract directly
-	cmd := exec.Command("tesseract", imagePath, "stdout")
+	cmd := exec.Command("tesseract", tmpPath, "stdout")
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal("OCR failed:", err)
@@ -31,13 +46,14 @@ func analyze(imagePath string) {
 	fmt.Println("🧠 OCR Result:")
 	fmt.Println(text)
 
-	votingKeywords := []string{"VOTE", "MAP"}
+	// votingKeywords := []string{"VOTE", "MAP"}
+	// for _, keyword := range votingKeywords {
+	// 	if strings.Contains(text, keyword) {
+	// 		fmt.Printf("Found keyword: %s\n", keyword)
+	// 	}
+	// }
 
-	for _, keyword := range votingKeywords {
-		if strings.Contains(text, keyword) {
-			fmt.Printf("%s\n", keyword)
-		}
-	}
+	return text, nil
 
 	// filePath := "logs/output.txt"
 	// timestamp := time.Now().Format("2006-01-02_15-04-05")
