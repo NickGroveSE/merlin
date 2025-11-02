@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"log"
 	"os"
 
@@ -29,20 +30,21 @@ func (c *CaptureService) SetApp(app *application.App) {
 type GameState struct {
 	GameStatus Status
 	Filters    OverwatchFilters
-	Selector   RoleSelector
+	Selector   Selector
 }
 
 type Status int
 
 const (
 	StatusIdle Status = iota
-	StatusRoleSelection
+	StatusSelection
 	StatusInQueue
 	StatusMapVotingPhase
 	StatusBanningPhase
 )
 
-type RoleSelector struct {
+type Selector struct {
+	Queue   Queue
 	Tank    bool
 	Damage  bool
 	Support bool
@@ -61,8 +63,8 @@ func (s Status) String() string {
 	switch s {
 	case StatusIdle:
 		return "Idle"
-	case StatusRoleSelection:
-		return "Selecting Role"
+	case StatusSelection:
+		return "Selecting Queue & Role"
 	case StatusInQueue:
 		return "In Queue"
 	case StatusMapVotingPhase:
@@ -74,9 +76,12 @@ func (s Status) String() string {
 	}
 }
 
+var qpColor = color.RGBA{R: 13, G: 56, B: 217, A: 255}
+var compColor = color.RGBA{R: 161, G: 20, B: 51, A: 255}
+
 func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 
-	// gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{}}
+	gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{}, Selector: Selector{}}
 
 	// for {
 
@@ -84,7 +89,25 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 	if err != nil {
 		log.Fatal("OCR failed:", err)
 	}
-	_ = imageRecognition(img)
+	queueColorSignifier := img.At(500, 600)
+	switch queueColorSignifier {
+	case qpColor:
+		gameState.Selector.Queue = QP
+		gameState.GameStatus = StatusSelection
+		_ = imageRecognition(img, "qp", &gameState)
+		fmt.Println("We Are Selecting for QP")
+	case compColor:
+		gameState.Selector.Queue = Comp
+		gameState.GameStatus = StatusSelection
+		_ = imageRecognition(img, "qp", &gameState)
+		fmt.Println("We Are Selecting for Comp")
+	default:
+		gameState.Selector.Queue = Comp
+		gameState.GameStatus = StatusSelection
+		_ = imageRecognition(img, "qp", &gameState)
+		fmt.Println("Not Selecting")
+	}
+	// _ = imageRecognition(img)
 	// processedImg, _ := processImage(img)
 
 	// analyze(processedImg)

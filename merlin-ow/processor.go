@@ -17,9 +17,9 @@ import (
 	"github.com/andreyvit/locateimage"
 )
 
-func imageRecognition(img *image.RGBA) bool {
+func imageRecognition(img *image.RGBA, queue string, gameState *GameState) bool {
 
-	selector := RoleSelector{Tank: false, Damage: false, Support: false, Flex: false}
+	selector := Selector{Queue: NoSelection, Tank: false, Damage: false, Support: false, Flex: false}
 
 	needleFiles := [8]string{"qp-flex-selected", "qp-tank-selected", "qp-dps-selected", "qp-sup-selected", "comp-flex-selected", "comp-tank-selected", "comp-dps-selected", "comp-sup-selected"}
 
@@ -43,7 +43,7 @@ func imageRecognition(img *image.RGBA) bool {
 
 		_, err = locateimage.Find(context.Background(), img, needleRGBA, 0, locateimage.Fastest)
 		if err != nil {
-			fmt.Printf("%s Image Not Found", needleFile)
+			fmt.Printf("%s Image Not Found\n", needleFile)
 			if strings.Contains(needleFile, "tank") && selector.Tank {
 				selector.Tank = false
 			} else if strings.Contains(needleFile, "dps") && selector.Damage {
@@ -52,17 +52,36 @@ func imageRecognition(img *image.RGBA) bool {
 				selector.Support = false
 			}
 		} else if strings.Contains(needleFile, "flex") {
+			fmt.Printf("%s\n", needleFile)
 			selector.Tank = false
 			selector.Damage = false
 			selector.Support = false
 			selector.Flex = true
+
+			if strings.Contains(needleFile, "qp") {
+				selector.Queue = QP
+			} else if strings.Contains(needleFile, "comp") {
+				selector.Queue = Comp
+			} else {
+				selector.Queue = NoSelection
+			}
+
 		} else {
+			fmt.Printf("%s\n", needleFile)
 			if strings.Contains(needleFile, "tank") && !selector.Tank {
 				selector.Tank = true
 			} else if strings.Contains(needleFile, "dps") && !selector.Damage {
 				selector.Damage = true
 			} else if strings.Contains(needleFile, "sup") && !selector.Support {
 				selector.Support = true
+			}
+
+			if strings.Contains(needleFile, "qp") {
+				selector.Queue = QP
+			} else if strings.Contains(needleFile, "comp") {
+				selector.Queue = Comp
+			} else {
+				selector.Queue = NoSelection
 			}
 		}
 
