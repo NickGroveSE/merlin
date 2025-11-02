@@ -47,7 +47,7 @@ export default {
       
       this.loading = true;
       try {
-        const result = await CaptureService.Capture();
+        const result = await CaptureService.StartMonitoring();
         console.log('Service Result:', result);
         this.heroData = result[0];
         this.defaultFilters = {

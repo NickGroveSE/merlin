@@ -25,7 +25,6 @@ func main() {
 	// Create OverwatchService first
 	overwatchService := NewOverwatchService()
 
-	// Pass it to CaptureService
 	captureService := NewCaptureService(overwatchService)
 
 	// Create a new Wails application by providing the necessary options.
@@ -47,6 +46,8 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
+
+	captureService.SetApp(app)
 
 	// Create a new window with the necessary options.
 	// 'Title' is the title of the window.
