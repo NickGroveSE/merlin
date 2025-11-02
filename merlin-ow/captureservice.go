@@ -29,7 +29,7 @@ func (c *CaptureService) SetApp(app *application.App) {
 type GameState struct {
 	GameStatus Status
 	Filters    OverwatchFilters
-	Selector   Selector
+	Selector   RoleSelector
 }
 
 type Status int
@@ -42,8 +42,7 @@ const (
 	StatusBanningPhase
 )
 
-type Selector struct {
-	Queue   Queue
+type RoleSelector struct {
 	Tank    bool
 	Damage  bool
 	Support bool

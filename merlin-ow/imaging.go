@@ -19,9 +19,9 @@ import (
 
 func imageRecognition(img *image.RGBA) bool {
 
-	selector := Selector{Queue: QP, Tank: false, Damage: false, Support: false, Flex: false}
+	selector := RoleSelector{Tank: false, Damage: false, Support: false, Flex: false}
 
-	needleFiles := [4]string{"qp-flex-selected", "qp-tank-selected", "qp-dps-selected", "qp-sup-selected"}
+	needleFiles := [8]string{"qp-flex-selected", "qp-tank-selected", "qp-dps-selected", "qp-sup-selected", "comp-flex-selected", "comp-tank-selected", "comp-dps-selected", "comp-sup-selected"}
 
 	for _, needleFile := range needleFiles {
 
@@ -68,7 +68,7 @@ func imageRecognition(img *image.RGBA) bool {
 
 	}
 
-	selectorReadable := fmt.Sprintf("\nQueue: %d\nTank Selected: %t\nDamage Selected: %t\nSupport Selected: %t\nFlex Selected: %t", selector.Queue, selector.Tank, selector.Damage, selector.Support, selector.Flex)
+	selectorReadable := fmt.Sprintf("\nTank Selected: %t\nDamage Selected: %t\nSupport Selected: %t\nFlex Selected: %t", selector.Tank, selector.Damage, selector.Support, selector.Flex)
 
 	fmt.Println(selectorReadable)
 
