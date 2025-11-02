@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	// contrast "github.com/hawx/img/contrast"
@@ -16,27 +17,11 @@ import (
 	"github.com/andreyvit/locateimage"
 )
 
-type Selection struct {
-	Queue   Queue
-	Tank    bool
-	Damage  bool
-	Support bool
-	Flex    bool
-}
-
-type Queue int
-
-const (
-	QP Queue = iota
-	Comp
-	NoSelection
-)
-
 func imageRecognition(img *image.RGBA) bool {
 
-	// selection := Selection{Queue: QP, Tank: false, Damage: false, Support: false, Flex: false}
+	selector := Selector{Queue: QP, Tank: false, Damage: false, Support: false, Flex: false}
 
-	needleFiles := [7]string{"qp-flex-selected", "qp-tank-selected", "qp-tank-unselected", "qp-dps-selected", "qp-dps-unselected", "qp-sup-selected", "qp-sup-unselected"}
+	needleFiles := [4]string{"qp-flex-selected", "qp-tank-selected", "qp-dps-selected", "qp-sup-selected"}
 
 	for _, needleFile := range needleFiles {
 
@@ -58,12 +43,34 @@ func imageRecognition(img *image.RGBA) bool {
 
 		_, err = locateimage.Find(context.Background(), img, needleRGBA, 0, locateimage.Fastest)
 		if err != nil {
-			fmt.Printf("Error Finding Image: %v\n", err)
+			fmt.Printf("%s Image Not Found", needleFile)
+			if strings.Contains(needleFile, "tank") && selector.Tank {
+				selector.Tank = false
+			} else if strings.Contains(needleFile, "dps") && selector.Damage {
+				selector.Damage = false
+			} else if strings.Contains(needleFile, "sup") && selector.Support {
+				selector.Support = false
+			}
+		} else if strings.Contains(needleFile, "flex") {
+			selector.Tank = false
+			selector.Damage = false
+			selector.Support = false
+			selector.Flex = true
 		} else {
-			fmt.Println("Holy Shit It Worked")
+			if strings.Contains(needleFile, "tank") && !selector.Tank {
+				selector.Tank = true
+			} else if strings.Contains(needleFile, "dps") && !selector.Damage {
+				selector.Damage = true
+			} else if strings.Contains(needleFile, "sup") && !selector.Support {
+				selector.Support = true
+			}
 		}
 
 	}
+
+	selectorReadable := fmt.Sprintf("\nQueue: %d\nTank Selected: %t\nDamage Selected: %t\nSupport Selected: %t\nFlex Selected: %t", selector.Queue, selector.Tank, selector.Damage, selector.Support, selector.Flex)
+
+	fmt.Println(selectorReadable)
 
 	return true
 }
