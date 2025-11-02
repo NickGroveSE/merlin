@@ -4,7 +4,7 @@
 
 ### Status Tree & Outline
 
-[Status Tree](docs_assets/status-tree-2.png)
+![status tree](docs_assets/status-tree-2.png)
 
 #### I. Status Checkpoints<br>
     A. Idle - Can signify various points within the actual game include Home Screen, End of Game 
@@ -27,7 +27,7 @@
     B. In Queue-Selection - Most commonly from cancelling of queue or changing of roles
     C. Selection-Idle - Leaves role and queue selection
 #### IV. A Note on Entry Paths<br>
-    - Every Status Checkpoint will have a way for the user to enter that status right away. I do not know 
+    - Every Status Checkpoint will have a way for the user to enter that status right away. I do not know
     when a user will start monitoring their screen so it is important to keep the entry point intuitive,
     because data can provided from them if the time has passed to capture it but what is most important
     is I am not breaking my system and I am creating a seamless UX.
