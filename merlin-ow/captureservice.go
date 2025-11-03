@@ -101,34 +101,104 @@ var compColor = color.RGBA{R: 182, G: 29, B: 71, A: 255}
 var compColorHover = color.RGBA{R: 183, G: 30, B: 72, A: 255}
 var inQueueCompColor = color.RGBA{R: 208, G: 59, B: 97, A: 255}
 
+var mapScan = [31]string{
+	"HANOAKA",
+	"THRONE OF ANUBIS",
+	"ANTARCTIC PENINSULA",
+	"BUSAN",
+	"ILIOS",
+	"LIGJANG TOWER",
+	"NEPAL",
+	"OASIS",
+	"SAMOA",
+	"CIRCUIT ROYAL",
+	"DORADO",
+	"HAVANA",
+	"JUNKERTOWN",
+	"RIALTO",
+	"ROUTE 66",
+	"SHAMBALI MONASTERY",
+	"WATCHPOINT: GIBRALTAR",
+	"AATLIS",
+	"NEW JUNK CITY",
+	"SURVASA",
+	"BLIZZARD WORLD",
+	"EICHENWALDE",
+	"HOLLYWOOD",
+	"KING'S ROW",
+	"MIDTOWN",
+	"NUMBANI",
+	"PARAÍSO",
+	"COLOSSEO",
+	"ESPERANÇA",
+	"NEW QUEEN STREET",
+	"RUNASAPI",
+}
+
+var mapFormat = map[string]string{
+	"HANAOKA":               "hanaoka",
+	"THRONE OF ANUBIS":      "throne-of-anubis",
+	"ANTARCTIC PENINSULA":   "antarctic-peninsula",
+	"BUSAN":                 "busan",
+	"ILIOS":                 "ilios",
+	"LIJANG TOWER":          "lijang-tower",
+	"NEPAL":                 "nepal",
+	"OASIS":                 "oasis",
+	"SAMOA":                 "samoa",
+	"CIRCUIT ROYAL":         "circuit-royal",
+	"DORADO":                "dorado",
+	"HAVANA":                "havana",
+	"JUNKERTOWN":            "junkertown",
+	"RIALTO":                "rialto",
+	"ROUTE 66":              "route-66",
+	"SHAMBALI MONASTERY":    "shambali-monastery",
+	"WATCHPOINT: GIBRALTAR": "watchpoint-gibraltar",
+	"AATLIS":                "aatlis",
+	"NEW JUNK CITY":         "new-junk-city",
+	"SURVASA":               "survasa",
+	"BLIZZARD WORLD":        "blizzard-world",
+	"EICHENWALDE":           "eichenwalde",
+	"HOLLYWOOD":             "hollywood",
+	"KING'S ROW":            "kings-row",
+	"MIDTOWN":               "midtown",
+	"NUMBANI":               "numbani",
+	"PARAÍSO":               "paraiso",
+	"COLOSSEO":              "colosseo",
+	"ESPERANÇA":             "esperanca",
+	"NEW QUEEN STREET":      "new-queen-street",
+	"RUNASAPI":              "runasapi",
+}
+
 // var compColor2 = color.RGBA{R: 161, G: 19, B: 52, A: 255}
 
 func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 
-	gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{Input: "PC", Region: "Americas"}, Selector: Selector{}}
+	gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{Role: "Support", Input: "PC", GameMode: "2", RankTier: "All", Map: "all-maps", Region: "Americas"}, Selector: Selector{}}
 
-	ticker := time.NewTicker(3000 * time.Millisecond)
+	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
+	doneChan := make(chan struct{})
+
 	counter := 0
 
-	captureFilters := OverwatchFilters{Role: "Support", Input: "PC", GameMode: "0", RankTier: "", Map: "new-queen-street", Region: "Americas"}
+	// captureFilters := OverwatchFilters{Role: "Support", Input: "PC", GameMode: "0", RankTier: "", Map: "new-queen-street", Region: "Americas"}
 
 	// heroes, _ := c.overwatchService.Scrape(captureFilters)
 
-	hero := OWHero{
-		Name:     "Ana",
-		Color:    "#FF0000",
-		Image:    "",
-		PickRate: 51.0,
-		WinRate:  51.0,
-	}
+	// hero := OWHero{
+	// 	Name:     "Ana",
+	// 	Color:    "#FF0000",
+	// 	Image:    "",
+	// 	PickRate: 51.0,
+	// 	WinRate:  51.0,
+	// }
 
-	heroes := []OWHero{hero}
+	// heroes := []OWHero{hero}
 
 	c.determineEntryPoint(&gameState)
 
@@ -136,11 +206,19 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 		select {
 		case <-ticker.C:
 			counter++
-			go c.evaluate(counter, &gameState)
+			go c.evaluate(counter, &gameState, doneChan)
+
+		case <-doneChan:
+			fmt.Println("\nExiting from evaluate...")
+			heroes, err := c.overwatchService.Scrape(gameState.Filters)
+			if err != nil {
+				fmt.Printf("Error Scraping: %e", err)
+			}
+			return heroes, gameState.Filters, nil
 
 		case <-sigChan:
 			fmt.Println("\nShutting down gracefully...")
-			return heroes, captureFilters, nil
+			return []OWHero{}, OverwatchFilters{}, nil
 		}
 
 	}
@@ -153,7 +231,7 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 	// 	time.Sleep(time.Second)
 	// }
 
-	return heroes, captureFilters, nil
+	return []OWHero{}, OverwatchFilters{}, nil
 
 }
 
@@ -193,7 +271,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) {
 			if strings.Contains(text, "VOTE") && strings.Contains(text, "MAP") {
 				gameState.GameStatus = StatusMapVotingPhase
 				fmt.Println(gameState.GameStatus.String())
-			} else if strings.Contains(text, "BANNING") {
+			} else if strings.Contains(text, "SELECT") {
 				gameState.GameStatus = StatusBanningPhase
 				fmt.Println(gameState.GameStatus.String())
 				// Transmit to User That Starting Monitoring in Banning Phase is Not Recommended
@@ -205,11 +283,13 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) {
 	}
 }
 
-func (c *CaptureService) evaluate(counter int, gameState *GameState) {
+func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan struct{}) {
+
 	img, err := capture()
 	if err != nil {
 		log.Fatal("OCR failed:", err)
 	}
+
 	fmt.Printf("Capture %d\n", counter)
 	queueColorSignifier := img.At(1350, 520)
 	inQueueColorSignifier := img.At(1100, 0)
@@ -221,12 +301,16 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState) {
 	case compColor, compColorHover:
 		c.updateSelections(img, "comp", Comp, gameState)
 	default:
-		switch inQueueColorSignifier {
-		case inQueueQPColor:
-			c.confirmSelections(img, "0", gameState)
-		case inQueueCompColor:
-			c.confirmSelections(img, "1", gameState)
-		default:
+		if gameState.GameStatus == StatusSelection || gameState.GameStatus == StatusIdle {
+			switch inQueueColorSignifier {
+			case inQueueQPColor:
+				c.confirmSelections("0", gameState)
+			case inQueueCompColor:
+				c.confirmSelections("1", gameState)
+			default:
+				fmt.Println(gameState.GameStatus.String())
+			}
+		} else if gameState.GameStatus == StatusInQueue {
 			processedImg, _ := processImage(img)
 			text, err := analyze(processedImg)
 			if err != nil {
@@ -236,13 +320,55 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState) {
 			if strings.Contains(text, "VOTE") && strings.Contains(text, "MAP") {
 				gameState.GameStatus = StatusMapVotingPhase
 				fmt.Println(gameState.GameStatus.String())
-			} else if strings.Contains(text, "BANNING") {
-				gameState.GameStatus = StatusBanningPhase
-				fmt.Println(gameState.GameStatus.String())
-				// Transmit to User That Starting Monitoring in Banning Phase is Not Recommended
 			} else {
 				fmt.Println(gameState.GameStatus.String())
 			}
+		} else if gameState.GameStatus == StatusMapVotingPhase {
+			processedImg, _ := processImage(img)
+			text, err := analyze(processedImg)
+			if err != nil {
+				fmt.Printf("Error in Text Analysis: %e", err)
+			}
+
+			fmt.Println(text)
+
+			if strings.Contains(text, "RESULT") {
+				gameState.GameStatus = StatusBanningPhase
+				postVoteText, err := analyze(processedImg)
+				if err != nil {
+					fmt.Printf("Error in Text Analysis: %e", err)
+				}
+
+				for i := range len(mapScan) {
+					if strings.Contains(postVoteText, mapScan[i]) {
+						gameState.Filters.Map = mapFormat[mapScan[i]]
+						done <- struct{}{}
+					}
+				}
+				fmt.Println(gameState.GameStatus.String())
+			} else {
+				fmt.Println(gameState.GameStatus.String())
+			}
+		} else if gameState.GameStatus == StatusBanningPhase {
+			mapCap, err := captureMap()
+			if err != nil {
+				log.Fatal("Capture failed:", err)
+			}
+
+			processedMapCap, _ := processImage(mapCap)
+			mapText, err := analyze(processedMapCap)
+			if err != nil {
+				fmt.Printf("Error in Text Analysis: %e", err)
+			}
+
+			for i := range len(mapScan) {
+				if strings.Contains(mapText, mapScan[i]) {
+					gameState.Filters.Map = mapFormat[mapScan[i]]
+					done <- struct{}{}
+				}
+			}
+		} else {
+			fmt.Println(gameState.GameStatus.String())
 		}
 	}
 }
@@ -255,44 +381,49 @@ func (c *CaptureService) updateSelections(img *image.RGBA, queue string, queueEn
 	_ = roleImageRecognition(img, queue, gameState)
 }
 
-func (c *CaptureService) confirmSelections(img *image.RGBA, queueQueryParam string, gameState *GameState) {
-	gameState.GameStatus = StatusInQueue
-	gameState.Filters.GameMode = queueQueryParam
-	if gameState.Selector.Flex {
-		fmt.Println("Flex Selection")
-		// Transmit Message About Flex
-	} else if gameState.Selector.Tank {
-		if gameState.Selector.Damage {
-			fmt.Println("Multiple Role Selection")
+func (c *CaptureService) confirmSelections(queueQueryParam string, gameState *GameState) {
+	switch gameState.GameStatus {
+	case StatusSelection:
+		gameState.GameStatus = StatusInQueue
+		gameState.Filters.GameMode = queueQueryParam
+		if gameState.Selector.Flex {
+			fmt.Println("Flex Selection")
 			gameState.Filters.Role = "Tank"
-			// Transmit Message About Multiple Role Selection
+			// Transmit Message About Flex
+		} else if gameState.Selector.Tank {
+			if gameState.Selector.Damage {
+				fmt.Println("Multiple Role Selection")
+				gameState.Filters.Role = "Tank"
+				// Transmit Message About Multiple Role Selection
+			} else if gameState.Selector.Support {
+				fmt.Println("Multiple Role Selection")
+				gameState.Filters.Role = "Tank"
+				// Transmit Message About Multiple Role Selection
+			} else {
+				fmt.Println("Tank")
+				gameState.Filters.Role = "Tank"
+			}
+		} else if gameState.Selector.Damage {
+			if gameState.Selector.Support {
+				fmt.Println("Multiple Role Selection")
+				gameState.Filters.Role = "Damage"
+				// Transmit Message About Multiple Role Selection
+			} else {
+				fmt.Println("Damage")
+				gameState.Filters.Role = "Damage"
+			}
 		} else if gameState.Selector.Support {
-			fmt.Println("Multiple Role Selection")
-			gameState.Filters.Role = "Tank"
-			// Transmit Message About Multiple Role Selection
+			fmt.Println("Support")
+			gameState.Filters.Role = "Support"
 		} else {
-			fmt.Println("Tank")
+			fmt.Println("Role Selection Couldn't Be Detected")
 			gameState.Filters.Role = "Tank"
+			// Transmit Message About Role Selection Couldn't Be Detected
 		}
-	} else if gameState.Selector.Damage {
-		if gameState.Selector.Support {
-			fmt.Println("Multiple Role Selection")
-			gameState.Filters.Role = "Damage"
-			// Transmit Message About Multiple Role Selection
-		} else {
-			fmt.Println("Damage")
-			gameState.Filters.Role = "Damage"
-		}
-	} else if gameState.Selector.Support {
-		fmt.Println("Support")
-		gameState.Filters.Role = "Support"
-	} else {
-		fmt.Println("Role Selection Couldn't Be Detected")
-		gameState.Filters.Role = "Tank"
-		// Transmit Message About Role Selection Couldn't Be Detected
+	case StatusIdle:
+		gameState.GameStatus = StatusInQueue
+		gameState.Filters.GameMode = queueQueryParam
 	}
-
-	gameState.Selector = Selector{}
 
 	fmt.Println(gameState.Filters)
 }
