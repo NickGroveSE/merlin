@@ -17,11 +17,9 @@ import (
 	"github.com/andreyvit/locateimage"
 )
 
-func imageRecognition(img *image.RGBA, queue string, gameState *GameState) bool {
+func roleImageRecognition(img *image.RGBA, queue string, gameState *GameState) bool {
 
-	selector := Selector{Queue: NoSelection, Tank: false, Damage: false, Support: false, Flex: false}
-
-	needleFiles := [8]string{"qp-flex-selected", "qp-tank-selected", "qp-dps-selected", "qp-sup-selected", "comp-flex-selected", "comp-tank-selected", "comp-dps-selected", "comp-sup-selected"}
+	needleFiles := [4]string{queue + "-flex-selected", queue + "-tank-selected", queue + "-dps-selected", queue + "-sup-selected"}
 
 	for _, needleFile := range needleFiles {
 
@@ -43,53 +41,40 @@ func imageRecognition(img *image.RGBA, queue string, gameState *GameState) bool 
 
 		_, err = locateimage.Find(context.Background(), img, needleRGBA, 0, locateimage.Fastest)
 		if err != nil {
-			fmt.Printf("%s Image Not Found\n", needleFile)
-			if strings.Contains(needleFile, "tank") && selector.Tank {
-				selector.Tank = false
-			} else if strings.Contains(needleFile, "dps") && selector.Damage {
-				selector.Damage = false
-			} else if strings.Contains(needleFile, "sup") && selector.Support {
-				selector.Support = false
+			// fmt.Printf("%s Image Not Found\n", needleFile)
+			if strings.Contains(needleFile, "tank") && gameState.Selector.Tank {
+				gameState.Selector.Tank = false
+			} else if strings.Contains(needleFile, "dps") && gameState.Selector.Damage {
+				gameState.Selector.Damage = false
+			} else if strings.Contains(needleFile, "sup") && gameState.Selector.Support {
+				gameState.Selector.Support = false
 			}
 		} else if strings.Contains(needleFile, "flex") {
-			fmt.Printf("%s\n", needleFile)
-			selector.Tank = false
-			selector.Damage = false
-			selector.Support = false
-			selector.Flex = true
-
-			if strings.Contains(needleFile, "qp") {
-				selector.Queue = QP
-			} else if strings.Contains(needleFile, "comp") {
-				selector.Queue = Comp
-			} else {
-				selector.Queue = NoSelection
-			}
+			fmt.Printf("%s\n", "Flex Selected")
+			gameState.Selector.Tank = false
+			gameState.Selector.Damage = false
+			gameState.Selector.Support = false
+			gameState.Selector.Flex = true
 
 		} else {
-			fmt.Printf("%s\n", needleFile)
-			if strings.Contains(needleFile, "tank") && !selector.Tank {
-				selector.Tank = true
-			} else if strings.Contains(needleFile, "dps") && !selector.Damage {
-				selector.Damage = true
-			} else if strings.Contains(needleFile, "sup") && !selector.Support {
-				selector.Support = true
-			}
 
-			if strings.Contains(needleFile, "qp") {
-				selector.Queue = QP
-			} else if strings.Contains(needleFile, "comp") {
-				selector.Queue = Comp
-			} else {
-				selector.Queue = NoSelection
+			if strings.Contains(needleFile, "tank") && !gameState.Selector.Tank {
+				gameState.Selector.Tank = true
+				fmt.Printf("%s\n", "Tank Selected")
+			} else if strings.Contains(needleFile, "dps") && !gameState.Selector.Damage {
+				gameState.Selector.Damage = true
+				fmt.Printf("%s\n", "Damage Selected")
+			} else if strings.Contains(needleFile, "sup") && !gameState.Selector.Support {
+				gameState.Selector.Support = true
+				fmt.Printf("%s\n", "Support Selected")
 			}
 		}
 
 	}
 
-	selectorReadable := fmt.Sprintf("\nTank Selected: %t\nDamage Selected: %t\nSupport Selected: %t\nFlex Selected: %t", selector.Tank, selector.Damage, selector.Support, selector.Flex)
+	// selectorReadable := fmt.Sprintf("\nTank Selected: %t\nDamage Selected: %t\nSupport Selected: %t\nFlex Selected: %t", gameState.Selector.Tank, gameState.Selector.Damage, gameState.Selector.Support, gameState.Selector.Flex)
 
-	fmt.Println(selectorReadable)
+	// fmt.Println(selectorReadable)
 
 	return true
 }

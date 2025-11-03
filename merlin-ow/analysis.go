@@ -43,8 +43,8 @@ func analyze(img image.Image) (string, error) {
 	}
 
 	text := strings.TrimSpace(string(output))
-	fmt.Println("🧠 OCR Result:")
-	fmt.Println(text)
+	// fmt.Println("🧠 OCR Result:")
+	// fmt.Println(text)
 
 	// votingKeywords := []string{"VOTE", "MAP"}
 	// for _, keyword := range votingKeywords {

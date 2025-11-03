@@ -55,7 +55,7 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 		int(rect.Top)+height,  // Go to vertical midpoint
 	)
 
-	fmt.Printf("Capturing top-right of window %q bounds: %+v\n", title, topRightBounds)
+	// fmt.Printf("Capturing top-right of window %q bounds: %+v\n", title, topRightBounds)
 
 	// --- Capture that screen region ---
 	img, err := screenshot.CaptureRect(topRightBounds)
