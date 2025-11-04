@@ -1,4 +1,5 @@
-- Change to not have filters
-- Determine Entry Point & Evaluate Differences
-    - Entry Points have no initial state they are used to start the process of GameState
-    - Evaluate is used to update state
+- Event Emits for Entry Points
+- Avoid Banning Phase for QP
+- Footer
+    - Report an Issue
+    - Donate
