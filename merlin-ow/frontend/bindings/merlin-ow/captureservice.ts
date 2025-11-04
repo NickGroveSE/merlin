@@ -25,6 +25,10 @@ export function StartMonitoring(): $CancellablePromise<[$models.OWHero[], $model
     });
 }
 
+export function StopMonitoring(): $CancellablePromise<void> {
+    return $Call.ByID(33559753);
+}
+
 // Private type creation functions
 const $$createType0 = $models.OWHero.createFrom;
 const $$createType1 = $Create.Array($$createType0);

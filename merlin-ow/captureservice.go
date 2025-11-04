@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -19,12 +21,17 @@ import (
 type CaptureService struct {
 	overwatchService *OverwatchService
 	app              *application.App
+	stopChan         chan struct{}
+	isRunning        bool
+	mu               sync.Mutex
 }
 
 func NewCaptureService(overwatchService *OverwatchService) *CaptureService {
 	return &CaptureService{
 		overwatchService: overwatchService,
 		app:              nil,
+		stopChan:         nil,
+		isRunning:        false,
 	}
 }
 
@@ -63,6 +70,12 @@ const (
 	Comp
 	NoSelection
 )
+
+// type StatusUpdate struct {
+// 	StatusIcon string `json:"statusIcon"`
+// 	StatusText string `json:"statusText"`
+// 	Message    string `json:"message"`
+// }
 
 func (s Status) String() string {
 	switch s {
@@ -169,11 +182,18 @@ var mapFormat = map[string]string{
 	"RUNASAPI":              "runasapi",
 }
 
-// var compColor2 = color.RGBA{R: 161, G: 19, B: 52, A: 255}
+var defaultStatusMessage = "Messages with more in-depth status updates..."
 
 func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 
-	gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{Role: "Support", Input: "PC", GameMode: "2", RankTier: "All", Map: "all-maps", Region: "Americas"}, Selector: Selector{}}
+	c.mu.Lock()
+	if c.isRunning {
+		c.mu.Unlock()
+		return []OWHero{}, OverwatchFilters{}, errors.New("monitoring already running")
+	}
+	c.isRunning = true
+	c.stopChan = make(chan struct{})
+	c.mu.Unlock()
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
@@ -183,6 +203,8 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	doneChan := make(chan struct{})
+
+	gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{Role: "Support", Input: "PC", GameMode: "2", RankTier: "All", Map: "all-maps", Region: "Americas"}, Selector: Selector{}}
 
 	counter := 0
 
@@ -209,7 +231,15 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 			go c.evaluate(counter, &gameState, doneChan)
 
 		case <-doneChan:
-			fmt.Println("\nExiting from evaluate...")
+			fmt.Println("\nFinished retrieving filters, Scraping for data...")
+			heroes, err := c.overwatchService.Scrape(gameState.Filters)
+			if err != nil {
+				fmt.Printf("Error Scraping: %e", err)
+			}
+			return heroes, gameState.Filters, nil
+
+		case <-c.stopChan:
+			fmt.Println("\nMonitoring cut early, Scraping for data...")
 			heroes, err := c.overwatchService.Scrape(gameState.Filters)
 			if err != nil {
 				fmt.Printf("Error Scraping: %e", err)
@@ -235,6 +265,15 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 
 }
 
+func (c *CaptureService) StopMonitoring() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.isRunning && c.stopChan != nil {
+		c.stopChan <- struct{}{}
+		c.isRunning = false
+	}
+}
 func (c *CaptureService) determineEntryPoint(gameState *GameState) {
 
 	img, err := capture()
@@ -259,7 +298,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) {
 			fmt.Println(gameState.GameStatus.String())
 		case inQueueCompColor:
 			gameState.GameStatus = StatusInQueue
-			gameState.Filters.GameMode = "1"
+			gameState.Filters.GameMode = "2"
 			fmt.Println(gameState.GameStatus.String())
 		default:
 			processedImg, _ := processImage(img)
@@ -297,16 +336,53 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 	// fmt.Println(inQueueColorSignifier)
 	switch queueColorSignifier {
 	case qpColor, qpColorHover:
-		c.updateSelections(img, "qp", QP, gameState)
+		if gameState.GameStatus != StatusSelection {
+			c.app.Event.Emit("status-update", map[string]string{
+				"statusIcon": "../public/assets/selection.svg",
+				"statusText": "Selecting Role",
+				"message":    "Select your role(s) and game mode and I'll lock them in once you queue.",
+			})
+			c.app.Event.Emit("queue-update", "Waiting...")
+			c.app.Event.Emit("role-update", "Waiting...")
+			c.updateSelections(img, "qp", QP, gameState)
+			// c.app.Event.Emit("test-emit")
+		}
 	case compColor, compColorHover:
+		if gameState.GameStatus != StatusSelection {
+			c.app.Event.Emit("status-update", map[string]string{
+				"statusIcon": "../public/assets/selection.svg",
+				"statusText": "Selecting Role",
+				"message":    "Select your role(s) and game mode and I'll will lock them in once you queue.",
+			})
+		}
+		c.app.Event.Emit("queue-update", "Waiting...")
+		c.app.Event.Emit("role-update", "Waiting...")
 		c.updateSelections(img, "comp", Comp, gameState)
 	default:
 		if gameState.GameStatus == StatusSelection || gameState.GameStatus == StatusIdle {
 			switch inQueueColorSignifier {
 			case inQueueQPColor:
-				c.confirmSelections("0", gameState)
+				if gameState.GameStatus != StatusInQueue {
+					c.app.Event.Emit("status-update", map[string]string{
+						"statusIcon": "../public/assets/in-queue.svg",
+						"statusText": "In Queue",
+						"message":    "",
+					})
+					c.app.Event.Emit("queue-update", "Quick Play")
+					c.app.Event.Emit("map-update", "Waiting for Match...")
+					c.confirmSelections("0", gameState)
+				}
 			case inQueueCompColor:
-				c.confirmSelections("1", gameState)
+				if gameState.GameStatus != StatusInQueue {
+					c.app.Event.Emit("status-update", map[string]string{
+						"statusIcon": "../public/assets/in-queue.svg",
+						"statusText": "In Queue",
+						"message":    "",
+					})
+					c.app.Event.Emit("queue-update", "Competitive")
+					c.app.Event.Emit("map-update", "Waiting for Match...")
+					c.confirmSelections("2", gameState)
+				}
 			default:
 				fmt.Println(gameState.GameStatus.String())
 			}
@@ -318,6 +394,13 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			}
 
 			if strings.Contains(text, "VOTE") && strings.Contains(text, "MAP") {
+				if gameState.GameStatus != StatusMapVotingPhase {
+					c.app.Event.Emit("status-update", map[string]string{
+						"statusIcon": "../public/assets/map-voting.svg",
+						"statusText": "Map Voting",
+						"message":    "I see you've entered a match! I'll collect our final data needed after the map vote",
+					})
+				}
 				gameState.GameStatus = StatusMapVotingPhase
 				fmt.Println(gameState.GameStatus.String())
 			} else {
@@ -333,6 +416,14 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			fmt.Println(text)
 
 			if strings.Contains(text, "RESULT") {
+				if gameState.GameStatus != StatusBanningPhase {
+					c.app.Event.Emit("status-update", map[string]string{
+						"statusIcon": "../public/assets/banning-phase.svg",
+						"statusText": "Bans Phase",
+						"message":    "Detecting map vote result...",
+					})
+				}
+
 				gameState.GameStatus = StatusBanningPhase
 				postVoteText, err := analyze(processedImg)
 				if err != nil {
@@ -389,36 +480,47 @@ func (c *CaptureService) confirmSelections(queueQueryParam string, gameState *Ga
 		if gameState.Selector.Flex {
 			fmt.Println("Flex Selection")
 			gameState.Filters.Role = "Tank"
-			// Transmit Message About Flex
+			c.app.Event.Emit("message", "Flex Queue! A jack of all trades I see. I'll put you as Tank for now but once we have collected the match data for you, you'll be able to pick what role you end up with in the filters")
+			c.app.Event.Emit("role-update", "Tank")
 		} else if gameState.Selector.Tank {
 			if gameState.Selector.Damage {
 				fmt.Println("Multiple Role Selection")
 				gameState.Filters.Role = "Tank"
-				// Transmit Message About Multiple Role Selection
+				c.app.Event.Emit("message", "I see you have chosen multiple roles, I'll put you as Tank for now but once we have collected the match data for you, you'll be able to pick what role you end up with in the filters")
+				c.app.Event.Emit("role-update", "Tank")
 			} else if gameState.Selector.Support {
 				fmt.Println("Multiple Role Selection")
 				gameState.Filters.Role = "Tank"
-				// Transmit Message About Multiple Role Selection
+				c.app.Event.Emit("message", "I see you have chosen multiple roles, I'll put you as Tank for now but once we have collected the match data for you, you'll be able to pick what role you end up with in the filters")
+				c.app.Event.Emit("role-update", "Tank")
 			} else {
 				fmt.Println("Tank")
 				gameState.Filters.Role = "Tank"
+				c.app.Event.Emit("message", "Locked in your role as Tank")
+				c.app.Event.Emit("role-update", "Tank")
 			}
 		} else if gameState.Selector.Damage {
 			if gameState.Selector.Support {
 				fmt.Println("Multiple Role Selection")
 				gameState.Filters.Role = "Damage"
-				// Transmit Message About Multiple Role Selection
+				c.app.Event.Emit("message", "I see you have chosen multiple roles, I'll put you as Damage for now but once we have collected the match data for you, you'll be able to pick what role you end up with in the filters")
+				c.app.Event.Emit("role-update", "Damage")
 			} else {
 				fmt.Println("Damage")
 				gameState.Filters.Role = "Damage"
+				c.app.Event.Emit("message", "Locked in your role as Damage")
+				c.app.Event.Emit("role-update", "Damage")
 			}
 		} else if gameState.Selector.Support {
 			fmt.Println("Support")
 			gameState.Filters.Role = "Support"
+			c.app.Event.Emit("message", "Locked in your role as Support")
+			c.app.Event.Emit("role-update", "Support")
 		} else {
 			fmt.Println("Role Selection Couldn't Be Detected")
 			gameState.Filters.Role = "Tank"
-			// Transmit Message About Role Selection Couldn't Be Detected
+			c.app.Event.Emit("message", "Oops! Looks like I couldn't detect your role. Its okay though once we have collected the other match data for you, you'll be able to pick what role you end up with in the filters")
+			c.app.Event.Emit("role-update", "Support")
 		}
 	case StatusIdle:
 		gameState.GameStatus = StatusInQueue

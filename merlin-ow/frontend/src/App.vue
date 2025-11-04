@@ -1,13 +1,16 @@
 <script>
 import CompassFilters from './components/CompassFilters.vue';
 import HeroCompass from './components/HeroCompass.vue';
+import MonitoringPopUp from './components/MonitoringPopUp.vue';
 import { OverwatchService, CaptureService } from "../bindings/merlin-ow"
+import { Events } from '@wailsio/runtime';
 
 export default {
   name: 'App',
   components: {
     HeroCompass,
     CompassFilters,
+    MonitoringPopUp
   },
   data() {
     return {
@@ -20,12 +23,61 @@ export default {
         region: 'Americas'
       },
       heroData: null,
-      loading: false
+      loading: false,
+      monitoring: false,
+      status: {
+        icon: "../public/assets/idle.svg",
+        statusText: "Idle",
+        gameData: {
+          input: 'PC',
+          queue: '',
+          rank: 'All Ranks',
+          role: '',
+          map: 'All Maps',
+          region: 'Americas'
+        },
+        message: "Messages with more in-depth status updates..."
+      }
     }
   },
   mounted() {
     // Call scrape with default filters when component loads
     this.handleFiltersApplied(this.defaultFilters)
+
+    Events.On('status-update', (data) => {
+      this.status.icon = data.data[0].statusIcon
+      this.status.statusText = data.data[0].statusText
+      this.status.message = data.data[0].message
+
+      // console.log("Made It Here")
+      // console.log(data.data[0].statusText)
+    });
+
+    Events.On('message', (data) => {
+      this.status.message = data.data[0]
+
+      // console.log(message)
+    })
+
+    Events.On('queue-update', (data) => {
+      this.status.gameData.queue = data.data[0]
+
+      console.log(data)
+    });
+
+    Events.On('role-update', (data) => {
+      this.status.gameData.role = data.data[0]
+    });
+
+    Events.On('map-update', (data) => {
+      this.status.gameData.map = data.data[0]
+    });
+
+
+
+    // Events.On('test-emit', () => {
+    //   console.log("Here")
+    // })
   },
   methods: {
     async handleFiltersApplied(filters) {
@@ -42,10 +94,11 @@ export default {
         this.loading = false;
       }
     },
-    async handleCaptureTrigger() {
+    async handleStartMonitoring() {
       console.log('Begin Capturing Screen');
       
       this.loading = true;
+      this.monitoring = true;
       try {
         const result = await CaptureService.StartMonitoring();
         console.log('Service Result:', result);
@@ -62,8 +115,14 @@ export default {
       } catch (err) {
         console.error('Error Scraping:', err);
       } finally {
+        this.monitoring = false;
         this.loading = false;
       }
+    },
+    async handleStopMonitoring() {
+      console.log('Stop Capturing Screen');
+
+      const result = await CaptureService.StopMonitoring();
     }
   }
 }
@@ -71,8 +130,11 @@ export default {
 
 <template>
   <div class="container" :class="{'disable-click': loading}">
-    <HeroCompass v-if="heroData" class="component" id="compass" :heroData="heroData" @capture-triggered="handleCaptureTrigger"/>
+    <HeroCompass v-if="heroData" class="component" id="compass" :heroData="heroData" @start-monitoring="handleStartMonitoring"/>
     <CompassFilters class="component" :queryParams="defaultFilters" @filters-applied="handleFiltersApplied"/>
+    <div v-if="monitoring" id="monitor-wrapper">
+      <MonitoringPopUp :statusIcon="status.icon" :statusText="status.statusText" :gameData="status.gameData" :message="status.message" @stop-monitoring="handleStopMonitoring"/>
+    </div>
   </div>
 </template>
 
@@ -111,5 +173,14 @@ export default {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.2); /* Translucent black overlay */
     z-index: 1; /* Place the overlay behind the content if needed */
+  }
+
+  #monitor-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
   }
 </style>

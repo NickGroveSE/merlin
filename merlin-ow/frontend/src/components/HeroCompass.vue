@@ -108,7 +108,7 @@
         <div class="tooltip-stat">Win Rate: {{ tooltip.data.WinRate }}%</div>
       </div>
     </div>
-    <div id="capture-btn" @click="triggerCapture">Capture Screen</div>
+    <div id="capture-btn" @click="startMonitoring">Capture Screen</div>
   </div>
 </template>
 
@@ -423,9 +423,9 @@ export default {
       };
       this.hoveredHero = null;
     },
-    triggerCapture() {
+    startMonitoring() {
         // Emit to parent component
-        this.$emit('capture-triggered');
+        this.$emit('start-monitoring');
     }
   }
 };
