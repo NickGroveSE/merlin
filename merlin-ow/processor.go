@@ -39,7 +39,7 @@ func roleImageRecognition(img *image.RGBA, queue string, gameState *GameState) b
 
 		needleRGBA := imageToRGBA(needle)
 
-		_, err = locateimage.Find(context.Background(), img, needleRGBA, 0, locateimage.Fastest)
+		_, err = locateimage.Find(context.Background(), img, needleRGBA, 0.05, locateimage.Fastest)
 		if err != nil {
 			// fmt.Printf("%s Image Not Found\n", needleFile)
 			if strings.Contains(needleFile, "tank") && gameState.Selector.Tank {

@@ -55,7 +55,7 @@ func main() {
 	// 'BackgroundColour' is the background colour of the window.
 	// 'URL' is the URL that will be loaded into the webview.
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "merlin",
+		Title:  "Merlin OW",
 		Width:  1280,
 		Height: 800,
 		Mac: application.MacWindow{

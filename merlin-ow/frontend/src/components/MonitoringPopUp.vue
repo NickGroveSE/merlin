@@ -1,59 +1,65 @@
 <template>
   <div class="status-container">
     <!-- Header Section -->
-    <div class="status-header">
-      <img class="status-icon" :src="statusIcon">
-      <h2 class="status-text">Status : {{ statusText }}</h2>
-      <button class="close-button" @click="stopMonitoring">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </div>
+    <transition name="fade" mode="out-in">
+      <div class="status-header" :key="statusText">
+        <img class="status-icon" :src="statusIcon">
+        <h2 class="status-text">Status : {{ statusText }}</h2>
+        <button class="close-button" @click="stopMonitoring">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </transition>
 
     <!-- Content Section -->
     <div class="content-wrapper">
       <!-- Left Side - Game Data -->
-      <div class="game-data">
-        <div class="data-row">
-          <span class="data-label">Input</span>
-          <span class="data-separator">:</span>
-          <span class="data-value">{{ gameData.input }}</span>
+      <transition name="fade" mode="out-in">
+        <div class="game-data" :key="JSON.stringify(gameData)">
+          <div class="data-row">
+            <span class="data-label">Input</span>
+            <span class="data-separator">:</span>
+            <span class="data-value">{{ gameData.input }}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Queue</span>
+            <span class="data-separator">:</span>
+            <span class="data-value">{{ gameData.queue }}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Rank</span>
+            <span class="data-separator">:</span>
+            <span class="data-value">{{ gameData.rank }}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Role</span>
+            <span class="data-separator">:</span>
+            <span class="data-value">{{ gameData.role }}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Map</span>
+            <span class="data-separator">:</span>
+            <span class="data-value">{{ gameData.map }}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Region</span>
+            <span class="data-separator">:</span>
+            <span class="data-value">{{ gameData.region }}</span>
+          </div>
         </div>
-        <div class="data-row">
-          <span class="data-label">Queue</span>
-          <span class="data-separator">:</span>
-          <span class="data-value">{{ gameData.queue }}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">Rank</span>
-          <span class="data-separator">:</span>
-          <span class="data-value">{{ gameData.rank }}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">Role</span>
-          <span class="data-separator">:</span>
-          <span class="data-value">{{ gameData.role }}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">Map</span>
-          <span class="data-separator">:</span>
-          <span class="data-value">{{ gameData.map }}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">Region</span>
-          <span class="data-separator">:</span>
-          <span class="data-value">{{ gameData.region }}</span>
-        </div>
-      </div>
+      </transition>
 
       <!-- Right Side - Message Log -->
-      <div class="message-box">
-        <p class="message-description">
-          {{message}}
-        </p>
-      </div>
+      <transition name="fade" mode="out-in" :key="message">
+        <div class="message-box">
+          <p class="message-description">
+            {{message}}
+          </p>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -95,6 +101,21 @@ export default {
 </script>
 
 <style scoped>
+.fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+.fade-leave-active {
+  transition: all 0.3s ease-in;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
 .status-container {
   width: 600px;
   margin: 150px auto 0 auto;
