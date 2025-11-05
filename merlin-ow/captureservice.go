@@ -24,6 +24,7 @@ type CaptureService struct {
 	stopChan         chan struct{}
 	isRunning        bool
 	mu               sync.Mutex
+	wg               sync.WaitGroup
 }
 
 func NewCaptureService(overwatchService *OverwatchService) *CaptureService {
@@ -134,7 +135,7 @@ var mapScan = [31]string{
 	"WATCHPOINT: GIBRALTAR",
 	"AATLIS",
 	"NEW JUNK CITY",
-	"SURVASA",
+	"SURAVASA",
 	"BLIZZARD WORLD",
 	"EICHENWALDE",
 	"HOLLYWOOD",
@@ -168,7 +169,7 @@ var mapFormat = map[string]string{
 	"WATCHPOINT: GIBRALTAR": "watchpoint-gibraltar",
 	"AATLIS":                "aatlis",
 	"NEW JUNK CITY":         "new-junk-city",
-	"SURVASA":               "survasa",
+	"SURAVASA":              "suravasa",
 	"BLIZZARD WORLD":        "blizzard-world",
 	"EICHENWALDE":           "eichenwalde",
 	"HOLLYWOOD":             "hollywood",
@@ -195,16 +196,35 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 	c.stopChan = make(chan struct{})
 	c.mu.Unlock()
 
-	ticker := time.NewTicker(500 * time.Millisecond)
+	// Ensure cleanup happens
+	defer func() {
+		c.mu.Lock()
+		c.isRunning = false
+		c.stopChan = nil
+		c.mu.Unlock()
+		c.wg.Wait() // Wait for all goroutines to finish
+	}()
+
+	ticker := time.NewTicker(250 * time.Millisecond)
 	defer ticker.Stop()
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	doneChan := make(chan struct{})
+	doneChan := make(chan struct{}, 1)
 
-	gameState := GameState{GameStatus: StatusIdle, Filters: OverwatchFilters{Role: "Support", Input: "PC", GameMode: "2", RankTier: "All", Map: "all-maps", Region: "Americas"}, Selector: Selector{}}
+	gameState := GameState{
+		GameStatus: StatusIdle,
+		Filters: OverwatchFilters{
+			Role:     "Support",
+			Input:    "PC",
+			GameMode: "2",
+			RankTier: "All",
+			Map:      "all-maps",
+			Region:   "Americas"},
+		Selector: Selector{},
+	}
 
 	counter := 0
 
@@ -228,7 +248,11 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 		select {
 		case <-ticker.C:
 			counter++
-			go c.evaluate(counter, &gameState, doneChan)
+			c.wg.Add(1)
+			go func(cnt int) {
+				defer c.wg.Done() // Mark done when finished
+				c.evaluate(cnt, &gameState, doneChan)
+			}(counter)
 
 		case <-doneChan:
 			fmt.Println("\nFinished retrieving filters, Scraping for data...")
@@ -270,8 +294,8 @@ func (c *CaptureService) StopMonitoring() {
 	defer c.mu.Unlock()
 
 	if c.isRunning && c.stopChan != nil {
-		c.stopChan <- struct{}{}
-		c.isRunning = false
+		c.app.Event.Emit("message", "Shutting down monitoring software, this will take a moment...")
+		close(c.stopChan)
 	}
 }
 func (c *CaptureService) determineEntryPoint(gameState *GameState) {
@@ -353,9 +377,23 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) {
 
 func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan struct{}) {
 
+	c.mu.Lock()
+	if !c.isRunning {
+		c.mu.Unlock()
+		return
+	}
+	c.mu.Unlock()
+
+	// Check stop throughout the function
+	select {
+	case <-c.stopChan:
+		return
+	default:
+	}
+
 	img, err := capture()
 	if err != nil {
-		log.Fatal("OCR failed:", err)
+		return
 	}
 
 	fmt.Printf("Capture %d\n", counter)
@@ -375,6 +413,11 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			c.app.Event.Emit("role-update", "Waiting...")
 			// c.app.Event.Emit("test-emit")
 		}
+		select {
+		case <-c.stopChan:
+			return
+		default:
+		}
 		c.updateSelections(img, "qp", QP, gameState)
 	case compColor, compColorHover:
 		if gameState.GameStatus != StatusSelection {
@@ -385,6 +428,11 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			})
 			c.app.Event.Emit("queue-update", "Waiting...")
 			c.app.Event.Emit("role-update", "Waiting...")
+		}
+		select {
+		case <-c.stopChan:
+			return
+		default:
 		}
 		c.updateSelections(img, "comp", Comp, gameState)
 	default:
@@ -399,6 +447,11 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 					})
 					c.app.Event.Emit("queue-update", "Quick Play")
 					c.app.Event.Emit("map-update", "Waiting for Match...")
+					select {
+					case <-c.stopChan:
+						return
+					default:
+					}
 					c.confirmSelections("0", gameState)
 				}
 			case inQueueCompColor:
@@ -410,12 +463,22 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 					})
 					c.app.Event.Emit("queue-update", "Competitive")
 					c.app.Event.Emit("map-update", "Waiting for Match...")
+					select {
+					case <-c.stopChan:
+						return
+					default:
+					}
 					c.confirmSelections("2", gameState)
 				}
 			default:
 				fmt.Println(gameState.GameStatus.String())
 			}
 		} else if gameState.GameStatus == StatusInQueue {
+			select {
+			case <-c.stopChan:
+				return
+			default:
+			}
 			processedImg, _ := processImage(img)
 			text, err := analyze(processedImg)
 			if err != nil {
@@ -437,6 +500,11 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				fmt.Println(gameState.GameStatus.String())
 			}
 		} else if gameState.GameStatus == StatusMapVotingPhase {
+			select {
+			case <-c.stopChan:
+				return
+			default:
+			}
 			processedImg, _ := processImage(img)
 			text, err := analyze(processedImg)
 			if err != nil {
@@ -463,8 +531,23 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 				for i := range len(mapScan) {
 					if strings.Contains(postVoteText, mapScan[i]) {
+						c.mu.Lock()
+						if !c.isRunning {
+							c.mu.Unlock()
+							return
+						}
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						done <- struct{}{}
+						c.mu.Unlock()
+
+						// Non-blocking send OUTSIDE the mutex
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return
+						default:
+							// Another goroutine already sent
+							return
+						}
 					}
 				}
 				fmt.Println(gameState.GameStatus.String())
@@ -472,6 +555,11 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				fmt.Println(gameState.GameStatus.String())
 			}
 		} else if gameState.GameStatus == StatusBanningPhase {
+			select {
+			case <-c.stopChan:
+				return
+			default:
+			}
 			if gameState.Filters.GameMode == "0" {
 				processedImg, _ := processImage(img)
 				text, err := analyze(processedImg)
@@ -483,12 +571,35 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 				for i := range len(mapScan) {
 					if strings.Contains(text, mapScan[i]) {
+						c.mu.Lock()
+						if !c.isRunning {
+							c.mu.Unlock()
+							return
+						}
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						done <- struct{}{}
+						c.mu.Unlock()
+
+						// Non-blocking send OUTSIDE the mutex
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return
+						default:
+							// Another goroutine already sent
+							return
+						}
 					}
 				}
 
 			} else {
+				processedImg, _ := processImage(img)
+				text, err := analyze(processedImg)
+				if err != nil {
+					fmt.Printf("Error in Text Analysis: %e", err)
+				}
+
+				fmt.Println(text)
+
 				mapTopCap, mapBotCap, err := captureMap()
 				if err != nil {
 					log.Fatal("Capture failed:", err)
@@ -510,20 +621,64 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				fmt.Println(mapBotText)
 
 				for i := range len(mapScan) {
+					if strings.Contains(text, mapScan[i]) {
+						c.mu.Lock()
+						if !c.isRunning {
+							c.mu.Unlock()
+							return
+						}
+						gameState.Filters.Map = mapFormat[mapScan[i]]
+						c.mu.Unlock()
+
+						// Non-blocking send OUTSIDE the mutex
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return
+						default:
+							// Another goroutine already sent
+							return
+						}
+					}
+
 					if strings.Contains(mapTopText, mapScan[i]) {
 						c.mu.Lock()
-						defer c.mu.Unlock()
+						if !c.isRunning {
+							c.mu.Unlock()
+							return
+						}
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						c.isRunning = false
-						done <- struct{}{}
+						c.mu.Unlock()
+
+						// Non-blocking send OUTSIDE the mutex
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return
+						default:
+							// Another goroutine already sent
+							return
+						}
 					}
 
 					if strings.Contains(mapBotText, mapScan[i]) {
 						c.mu.Lock()
-						defer c.mu.Unlock()
+						if !c.isRunning {
+							c.mu.Unlock()
+							return
+						}
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						c.isRunning = false
-						done <- struct{}{}
+						c.mu.Unlock()
+
+						// Non-blocking send OUTSIDE the mutex
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return
+						default:
+							// Another goroutine already sent
+							return
+						}
 					}
 				}
 			}

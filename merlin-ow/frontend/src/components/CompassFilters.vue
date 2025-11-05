@@ -71,7 +71,7 @@
         <optgroup label="Flashpoint">
           <option value="aatlis">Aatlis</option>
           <option value="new-junk-city">New Junk City</option>
-          <option value="survasa">Survasa</option>
+          <option value="suravasa">Suravasa</option>
         </optgroup>
         <optgroup label="Hybrid">
           <option value="blizzard-world">Blizzard World</option>

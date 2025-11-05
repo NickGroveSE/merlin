@@ -48,6 +48,8 @@ func roleImageRecognition(img *image.RGBA, queue string, gameState *GameState) b
 				gameState.Selector.Damage = false
 			} else if strings.Contains(needleFile, "sup") && gameState.Selector.Support {
 				gameState.Selector.Support = false
+			} else if strings.Contains(needleFile, "sup") && gameState.Selector.Support {
+				gameState.Selector.Flex = false
 			}
 		} else if strings.Contains(needleFile, "flex") {
 			fmt.Printf("%s\n", "Flex Selected")
