@@ -5,7 +5,6 @@ go 1.24.0
 toolchain go1.24.6
 
 require (
-	github.com/andreyvit/locateimage v0.1.0
 	github.com/kbinani/screenshot v0.0.0-20250624051815-089614a94018
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.36
 	golang.org/x/sys v0.37.0

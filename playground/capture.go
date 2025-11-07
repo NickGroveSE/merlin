@@ -3,50 +3,51 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/png"
-	"os"
-	"path/filepath"
-	"time"
+
+	// "image/png"
+	// "os"
+	// "path/filepath"
+	// "time"
 	"unsafe"
 
 	"github.com/kbinani/screenshot"
 	"golang.org/x/sys/windows"
 )
 
-func captureHandler() string {
+func captureHandler() *image.RGBA {
 	windowTitle := "Overwatch" // 👈 change this to your target window title
 
 	img, err := captureWindowByTitle(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return "failed"
+		return nil
 	}
 
-	// --- Ensure temp folder exists ---
-	outputDir := "temp"
-	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
-		fmt.Println("Failed to create temp folder:", err)
-		return "failed"
-	}
+	// // --- Ensure temp folder exists ---
+	// outputDir := "temp"
+	// if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
+	// 	fmt.Println("Failed to create temp folder:", err)
+	// 	return "failed"
+	// }
 
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("window_capture_%s.png", timestamp)
-	outputPath := filepath.Join(outputDir, filename)
+	// timestamp := time.Now().Format("2006-01-02_15-04-05")
+	// filename := fmt.Sprintf("window_capture_%s.png", timestamp)
+	// outputPath := filepath.Join(outputDir, filename)
 
-	file, err := os.Create(outputPath)
-	if err != nil {
-		fmt.Println("Failed to create file:", err)
-		return "failed"
-	}
-	defer file.Close()
+	// file, err := os.Create(outputPath)
+	// if err != nil {
+	// 	fmt.Println("Failed to create file:", err)
+	// 	return "failed"
+	// }
+	// defer file.Close()
 
-	if err := png.Encode(file, img); err != nil {
-		fmt.Println("Failed to encode PNG:", err)
-		return "failed"
-	}
+	// if err := png.Encode(file, img); err != nil {
+	// 	fmt.Println("Failed to encode PNG:", err)
+	// 	return "failed"
+	// }
 
-	fmt.Printf("✅ Saved %s successfully\n", outputPath)
-	return filename
+	// fmt.Printf("✅ Saved %s successfully\n", outputPath)
+	return img
 }
 
 func captureWindowByTitle(title string) (*image.RGBA, error) {

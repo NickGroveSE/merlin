@@ -1,84 +1,90 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
+	// "image/png"
+	// "os"
+	"path/filepath"
+	"time"
 	// contrast "github.com/hawx/img/contrast"
 	// sharpen "github.com/hawx/img/sharpen"
-	"github.com/andreyvit/locateimage"
+	// "github.com/andreyvit/locateimage"
 )
 
-func roleImageRecognition(img *image.RGBA, queue string, gameState *GameState) bool {
+func roleRecognition(img *image.RGBA, gameState *GameState) error {
 
-	needleFiles := [4]string{queue + "-flex-selected", queue + "-tank-selected", queue + "-dps-selected", queue + "-sup-selected"}
+	checkCoords := [4]int{
+		1394,
+		1086,
+		801,
+		516,
+	}
 
-	for _, needleFile := range needleFiles {
+	checkColor := color.RGBA{R: 0, G: 186, B: 0, A: 255}
+	uncheckColor := color.RGBA{R: 29, G: 37, B: 58, A: 255}
 
-		file, err := os.Open("recognition_assets/" + needleFile + ".png")
-		if err != nil {
-			fmt.Printf("Error opening file: %v\n", err)
-			return false
-		}
-		defer file.Close() // Ensure the file is closed when done
+	for i, coord := range checkCoords {
 
-		// Decode the PNG image
-		needle, err := png.Decode(file)
-		if err != nil {
-			fmt.Printf("Error decoding PNG: %v\n", err)
-			return false
-		}
+		pixel := img.At(coord, 587)
 
-		needleRGBA := imageToRGBA(needle)
-
-		_, err = locateimage.Find(context.Background(), img, needleRGBA, 0.05, locateimage.Fastest)
-		if err != nil {
-			// fmt.Printf("%s Image Not Found\n", needleFile)
-			if strings.Contains(needleFile, "tank") && gameState.Selector.Tank {
-				gameState.Selector.Tank = false
-			} else if strings.Contains(needleFile, "dps") && gameState.Selector.Damage {
-				gameState.Selector.Damage = false
-			} else if strings.Contains(needleFile, "sup") && gameState.Selector.Support {
-				gameState.Selector.Support = false
-			} else if strings.Contains(needleFile, "sup") && gameState.Selector.Support {
+		if colorMatch(uncheckColor, pixel, 2000) {
+			if i == 0 && gameState.Selector.Flex {
+				fmt.Println("Flex Unselected")
 				gameState.Selector.Flex = false
+			} else if i == 1 && gameState.Selector.Support {
+				fmt.Println("Support Unselected")
+				gameState.Selector.Support = false
+			} else if i == 2 && gameState.Selector.Damage {
+				fmt.Println("Damage Unselected")
+				gameState.Selector.Damage = false
+			} else if i == 3 && gameState.Selector.Tank {
+				fmt.Println("Tank Unselected")
+				gameState.Selector.Tank = false
 			}
-		} else if strings.Contains(needleFile, "flex") {
-			fmt.Printf("%s\n", "Flex Selected")
-			gameState.Selector.Tank = false
-			gameState.Selector.Damage = false
-			gameState.Selector.Support = false
-			gameState.Selector.Flex = true
-
-		} else {
-
-			if strings.Contains(needleFile, "tank") && !gameState.Selector.Tank {
-				gameState.Selector.Tank = true
-				fmt.Printf("%s\n", "Tank Selected")
-			} else if strings.Contains(needleFile, "dps") && !gameState.Selector.Damage {
-				gameState.Selector.Damage = true
-				fmt.Printf("%s\n", "Damage Selected")
-			} else if strings.Contains(needleFile, "sup") && !gameState.Selector.Support {
+		} else if colorMatch(checkColor, pixel, 15000) {
+			if i == 0 && !gameState.Selector.Flex {
+				fmt.Println("Flex Selected")
+				gameState.Selector.Flex = true
+				gameState.Selector.Support = false
+				gameState.Selector.Damage = false
+				gameState.Selector.Tank = false
+			} else if i == 1 && !gameState.Selector.Support {
+				fmt.Println("Support Selected")
 				gameState.Selector.Support = true
-				fmt.Printf("%s\n", "Support Selected")
+			} else if i == 2 && !gameState.Selector.Damage {
+				fmt.Println("Damage Selected")
+				gameState.Selector.Damage = true
+			} else if i == 3 && !gameState.Selector.Tank {
+				fmt.Println("Tank Selected")
+				gameState.Selector.Tank = true
 			}
 		}
 
 	}
 
-	// selectorReadable := fmt.Sprintf("\nTank Selected: %t\nDamage Selected: %t\nSupport Selected: %t\nFlex Selected: %t", gameState.Selector.Tank, gameState.Selector.Damage, gameState.Selector.Support, gameState.Selector.Flex)
+	return nil
+}
 
-	// fmt.Println(selectorReadable)
+func colorMatch(c1 color.Color, c2 color.Color, threshold uint32) bool {
+	r1, g1, b1, _ := c1.RGBA()
+	r2, g2, b2, _ := c2.RGBA()
 
-	return true
+	totalDiff := abs(int32(r1-r2)) + abs(int32(g1-g2)) + abs(int32(b1-b2))
+
+	fmt.Println(totalDiff)
+
+	return totalDiff < int32(threshold)
+}
+
+func abs(x int32) int32 {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 func processImage(img *image.RGBA) (image.Image, error) {

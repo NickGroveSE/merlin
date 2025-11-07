@@ -1,4 +1,27 @@
-- Event Emits for Entry Points (Done)
+- Role Recognition Restructuring
+    - Gather Screenshots
+        - Queue Pages Comp/QP Role Selection and Initial Screens (Account for Hover)
+            - Comp Initial Page
+            - Comp Initial Page Hover
+            - Comp Role Page
+            - Comp Role Page Hover
+            - QP Initial Page
+            - QP Initial Page Hover
+            - QP Role Page
+            - QP Role Page Hover
+        - Role Checkmark Positions (Account for Hover)
+    - Test Pixel Positions
+    - Rebuild Role Recognition Implementation
+    - Pixel Correction
+        - 610x343
+        - -379x-99 (199)
+        - 3.14754098
+        - Initial & Hover: 739x269 : Correction: ~1133x~535
+            - Using Color Match
+        - Check Flex: 821x384 : Correction: ~1394x~587
+        - Check Support: 723x384 : Correction: ~1086x~587
+        - Check Damage: 633x384 : Correction: ~801x~587
+        - Check Tank: ? : Correcct: ~516x~587
 - Map Recognition Testing
 - Footer
     - Report an Issue
@@ -19,6 +42,7 @@
         - Nepal (1/1)
         - New Junk City (0/1)
         - Paraiso (0/1)
+        - Rialto (1/1)
         - Route 66 (2/2)
         - Samoa (1/1)
         - Suravasa (1/1)
