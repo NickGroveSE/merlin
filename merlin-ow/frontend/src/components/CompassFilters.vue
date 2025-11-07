@@ -53,7 +53,7 @@
           <option value="antarctic-peninsula">Antarctic Peninsula</option>
           <option value="busan">Busan</option>
           <option value="ilios">Ilios</option>
-          <option value="lijang-tower">Lijang Tower</option>
+          <option value="lijiang-tower">Lijiang Tower</option>
           <option value="nepal">Nepal</option>
           <option value="oasis">Oasis</option>
           <option value="samoa">Samoa</option>
