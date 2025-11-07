@@ -31,8 +31,8 @@
     - Maps 
         - Busan (1/1)
         - Circuit Royal (0/1)
-        - Dorado (1/1)
-        - Eichenwalde (1/2)
+        - Dorado (2/2)
+        - Eichenwalde (1/3)
             - AICHENWALDE
         - Esperanca (0/1)
         - Hollywood (1/1)

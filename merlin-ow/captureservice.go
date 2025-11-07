@@ -464,8 +464,14 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				for i := range len(mapScan) {
 					if strings.Contains(postVoteText, mapScan[i]) {
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-						done <- struct{}{}
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return // Exit evaluate immediately
+						default:
+							// Channel is full, someone else already sent
+							return
+						}
 					}
 				}
 				fmt.Println(gameState.GameStatus.String())
@@ -485,8 +491,14 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				for i := range len(mapScan) {
 					if strings.Contains(text, mapScan[i]) {
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-						done <- struct{}{}
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return // Exit evaluate immediately
+						default:
+							// Channel is full, someone else already sent
+							return
+						}
 					}
 				}
 
@@ -522,20 +534,38 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				for i := range len(mapScan) {
 					if strings.Contains(text, mapScan[i]) {
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-						done <- struct{}{}
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return // Exit evaluate immediately
+						default:
+							// Channel is full, someone else already sent
+							return
+						}
 					}
 
 					if strings.Contains(mapTopText, mapScan[i]) {
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-						done <- struct{}{}
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return // Exit evaluate immediately
+						default:
+							// Channel is full, someone else already sent
+							return
+						}
 					}
 
 					if strings.Contains(mapBotText, mapScan[i]) {
 						gameState.Filters.Map = mapFormat[mapScan[i]]
-						fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-						done <- struct{}{}
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return // Exit evaluate immediately
+						default:
+							// Channel is full, someone else already sent
+							return
+						}
 					}
 				}
 			}
