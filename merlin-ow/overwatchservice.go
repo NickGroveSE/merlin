@@ -46,26 +46,26 @@ func (o *OverwatchService) Scrape(filters OverwatchFilters) ([]OWHero, error) {
 	// Make HTTP GET request
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return []OWHero{}, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status code: %d", resp.StatusCode)
+		return []OWHero{}, fmt.Errorf("bad status code: %d", resp.StatusCode)
 	}
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return []OWHero{}, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	// Parse JSON response
 	var response OWDataResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+		return []OWHero{}, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 	return response.Data, nil
 }

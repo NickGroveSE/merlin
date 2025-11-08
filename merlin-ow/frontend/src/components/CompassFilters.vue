@@ -46,7 +46,7 @@
       <select v-model="filters.map" class="filter-select">
         <option value="all-maps">All Maps</option>
         <optgroup v-if="filters.gameMode === '0'" label="Clash">
-          <option value="hanoka">Hanoka</option>
+          <option value="hanaoka">Hanaoka</option>
           <option value="throne-of-anubis">Throne of Anubis</option>
         </optgroup>
         <optgroup label="Control">

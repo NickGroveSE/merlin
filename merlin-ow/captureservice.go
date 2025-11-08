@@ -218,7 +218,9 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 
 	counter := 0
 
-	c.determineEntryPoint(&gameState)
+	if !c.determineEntryPoint(&gameState) {
+		return []OWHero{}, OverwatchFilters{}, nil
+	}
 
 	for {
 		select {
@@ -262,11 +264,13 @@ func (c *CaptureService) StopMonitoring() {
 		close(c.stopChan)
 	}
 }
-func (c *CaptureService) determineEntryPoint(gameState *GameState) {
+func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 
 	img, err := capture()
 	if err != nil {
-		log.Fatal("Capture failed:", err)
+		c.app.Event.Emit("error", err)
+		fmt.Println(err)
+		return false
 	}
 
 	queueColorSignifier := img.At(1350, 520)
@@ -344,6 +348,8 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) {
 		}
 
 	}
+
+	return true
 }
 
 func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan struct{}) {
@@ -513,7 +519,8 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 				mapTopCap, mapBotCap, err := captureMap()
 				if err != nil {
-					log.Fatal("Capture failed:", err)
+					fmt.Println(err)
+					return
 				}
 
 				processedMapTopCap, _ := processImage(mapTopCap)

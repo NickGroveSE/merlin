@@ -37,7 +37,8 @@ export default {
           region: 'Americas'
         },
         message: "Messages with more in-depth status updates..."
-      }
+      },
+      captureError: ""
     }
   },
   mounted() {
@@ -73,7 +74,9 @@ export default {
       this.status.gameData.map = data.data[0]
     });
 
-
+    Events.On('error', (data) => {
+      alert(data.data[0])
+    })
 
     // Events.On('test-emit', () => {
     //   console.log("Here")
