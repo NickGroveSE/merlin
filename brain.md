@@ -29,23 +29,42 @@
 
 - Text Recognition Issues:
     - Maps 
-        - Busan (1/1)
-        - Circuit Royal (0/1)
-        - Dorado (2/2)
-        - Eichenwalde (1/3)
+        - Aatlis ⏳
+        - Antarctic Peninsula ⏳
+        - Blizzard World ⏳
+        - Busan ✅
+        - Circuit Royal ⛔
+        - Colosseo ⏳
+        - Dorado ✅
+        - Eichenwalde ⚠️
             - AICHENWALDE
-        - Esperanca (0/1)
-        - Hollywood (1/1)
-        - Ilios (0/1)
-        - Junkertown (1/1)
-        - Midtown (1/1)
-        - Nepal (1/1)
-        - New Junk City (0/1)
-        - Paraiso (0/1)
-        - Rialto (1/1)
-        - Route 66 (2/2)
-        - Samoa (1/1)
-        - Suravasa (1/1)
+            - HICHENWALDE
+        - Esperanca ⛔
+            - ISPERANCA
+            - FSPERANCA
+        - Hanaoka ⏳
+        - Havana ⏳
+        - Hollywood ✅
+        - Ilios ⛔
+        - Junkertown ✅
+        - King's Row ⏳
+        - Lijiang Tower ⛔
+            - LUIANG TOWER
+        - Midtown ✅
+        - Nepal ✅
+        - New Junk City ⛔
+        - New Queen Street ⏳
+        - Numbani ✅
+        - Oasis ⏳
+        - Paraiso ⛔
+        - Rialto ✅
+        - Route 66 ✅
+        - Runasapi ⏳
+        - Samoa ✅
+        - Shambali Monastery ✅
+        - Suravasa ✅
+        - Throne of Anubis ⏳
+        - Watchpoint: Gibraltar ⏳
 - Image Recognition Issues:
     - Selection
         - Selector State is Late at times
