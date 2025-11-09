@@ -1,4 +1,4 @@
-~~
+<span style="color:gray; text-decoration:line-through;">
 - Role Recognition Restructuring
     - Gather Screenshots
         - Queue Pages Comp/QP Role Selection and Initial Screens (Account for Hover)
@@ -23,7 +23,7 @@
         - Check Support: 723x384 : Correction: ~1086x~587
         - Check Damage: 633x384 : Correction: ~801x~587
         - Check Tank: ? : Correcct: ~516x~587
-~~
+</span>
 
 - Map Recognition Testing
 - Footer
