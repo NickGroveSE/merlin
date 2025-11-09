@@ -15,37 +15,39 @@ import (
 	// "github.com/andreyvit/locateimage"
 )
 
-func roleRecognition(img *image.RGBA, gameState *GameState) error {
+func roleRecognition(cap Capture, gameState *GameState) error {
 
-	checkCoords := [4]int{
-		1394,
-		1086,
-		801,
-		516,
+	xBoundCalcs := [4]int{
+		int(cap.xBoundForCalc * 0.7197916666666667),
+		int(cap.xBoundForCalc * 0.559375),
+		int(cap.xBoundForCalc * 0.4109375),
+		int(cap.xBoundForCalc * 0.2625),
 	}
 
 	checkColor := color.RGBA{R: 0, G: 186, B: 0, A: 255}
-	uncheckColor := color.RGBA{R: 29, G: 37, B: 58, A: 255}
+	consolidatedYBoundCalc := int(cap.yBoundForCalc * 0.5185185185185185)
+	// uncheckColor := color.RGBA{R: 29, G: 37, B: 58, A: 255}
 
-	for i, coord := range checkCoords {
+	for i, xBoundCalc := range xBoundCalcs {
 
-		pixel := img.At(coord, 587)
+		// pixel := img.At(coord, 587)
 
-		if colorMatch(uncheckColor, pixel, 2000) {
-			if i == 0 && gameState.Selector.Flex {
-				fmt.Println("Flex Unselected")
-				gameState.Selector.Flex = false
-			} else if i == 1 && gameState.Selector.Support {
-				fmt.Println("Support Unselected")
-				gameState.Selector.Support = false
-			} else if i == 2 && gameState.Selector.Damage {
-				fmt.Println("Damage Unselected")
-				gameState.Selector.Damage = false
-			} else if i == 3 && gameState.Selector.Tank {
-				fmt.Println("Tank Unselected")
-				gameState.Selector.Tank = false
-			}
-		} else if colorMatch(checkColor, pixel, 15000) {
+		// if ColorMatch(uncheckColor, pixel, 2000) {
+		// 	if i == 0 && gameState.Selector.Flex {
+		// 		fmt.Println("Flex Unselected")
+		// 		gameState.Selector.Flex = false
+		// 	} else if i == 1 && gameState.Selector.Support {
+		// 		fmt.Println("Support Unselected")
+		// 		gameState.Selector.Support = false
+		// 	} else if i == 2 && gameState.Selector.Damage {
+		// 		fmt.Println("Damage Unselected")
+		// 		gameState.Selector.Damage = false
+		// 	} else if i == 3 && gameState.Selector.Tank {
+		// 		fmt.Println("Tank Unselected")
+		// 		gameState.Selector.Tank = false
+		// 	}
+		// } else
+		if ColorExistsInRegion(cap.img, xBoundCalc, consolidatedYBoundCalc, 44, 44, checkColor) {
 			if i == 0 && !gameState.Selector.Flex {
 				fmt.Println("Flex Selected")
 				gameState.Selector.Flex = true
@@ -62,6 +64,20 @@ func roleRecognition(img *image.RGBA, gameState *GameState) error {
 				fmt.Println("Tank Selected")
 				gameState.Selector.Tank = true
 			}
+		} else {
+			if i == 0 && gameState.Selector.Flex {
+				fmt.Println("Flex Unselected")
+				gameState.Selector.Flex = false
+			} else if i == 1 && gameState.Selector.Support {
+				fmt.Println("Support Unselected")
+				gameState.Selector.Support = false
+			} else if i == 2 && gameState.Selector.Damage {
+				fmt.Println("Damage Unselected")
+				gameState.Selector.Damage = false
+			} else if i == 3 && gameState.Selector.Tank {
+				fmt.Println("Tank Unselected")
+				gameState.Selector.Tank = false
+			}
 		}
 
 	}
@@ -69,18 +85,36 @@ func roleRecognition(img *image.RGBA, gameState *GameState) error {
 	return nil
 }
 
-func colorMatch(c1 color.Color, c2 color.Color, threshold uint32) bool {
+func ColorExistsInRegion(img *image.RGBA, x, y, width, height int, targetColor color.Color) bool {
+	tr, tg, tb, ta := targetColor.RGBA()
+
+	for py := y; py < y+height; py++ {
+		for px := x; px < x+width; px++ {
+			r, g, b, a := img.At(px, py).RGBA()
+			if r == tr && g == tg && b == tb && a == ta {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func ColorMatch(c1 color.Color, c2 color.Color, threshold uint32) bool {
+
+	// fmt.Println(c1)
+	// fmt.Println(c2)
+
 	r1, g1, b1, _ := c1.RGBA()
 	r2, g2, b2, _ := c2.RGBA()
 
-	totalDiff := abs(int32(r1-r2)) + abs(int32(g1-g2)) + abs(int32(b1-b2))
+	totalDiff := Abs(int32(r1-r2)) + Abs(int32(g1-g2)) + Abs(int32(b1-b2))
 
-	fmt.Println(totalDiff)
+	// fmt.Println(totalDiff)
 
 	return totalDiff < int32(threshold)
 }
 
-func abs(x int32) int32 {
+func Abs(x int32) int32 {
 	if x < 0 {
 		return -x
 	}

@@ -14,13 +14,21 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func captureHandler() *image.RGBA {
+type Capture struct {
+	img           *image.RGBA
+	xBound        int32
+	yBound        int32
+	xBoundForCalc float64
+	yBoundForCalc float64
+}
+
+func captureHandler() Capture {
 	windowTitle := "Overwatch" // 👈 change this to your target window title
 
-	img, err := captureWindowByTitle(windowTitle)
+	cap, err := captureWindowByTitle(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return nil
+		return Capture{}
 	}
 
 	// // --- Ensure temp folder exists ---
@@ -47,10 +55,10 @@ func captureHandler() *image.RGBA {
 	// }
 
 	// fmt.Printf("✅ Saved %s successfully\n", outputPath)
-	return img
+	return cap
 }
 
-func captureWindowByTitle(title string) (*image.RGBA, error) {
+func captureWindowByTitle(title string) (Capture, error) {
 	// --- Load user32.dll ---
 	user32 := windows.NewLazySystemDLL("user32.dll")
 	procFindWindowW := user32.NewProc("FindWindowW")
@@ -60,7 +68,7 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 	titlePtr, _ := windows.UTF16PtrFromString(title)
 	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
 	if hwnd == 0 {
-		return nil, fmt.Errorf("window with title %q not found", title)
+		return Capture{}, fmt.Errorf("window with title %q not found", title)
 	}
 
 	// --- Get window rect ---
@@ -69,16 +77,18 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 	}
 	ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
 	if ret == 0 {
-		return nil, fmt.Errorf("failed to get window rect")
+		return Capture{}, fmt.Errorf("failed to get window rect")
 	}
 
 	bounds := image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
 	fmt.Printf("Capturing window %q bounds: %+v\n", title, bounds)
 
+	// fmt.Println(Abs(rect.Top))
+
 	// --- Capture that screen region ---
 	img, err := screenshot.CaptureRect(bounds)
 	if err != nil {
-		return nil, fmt.Errorf("capture failed: %w", err)
+		return Capture{}, fmt.Errorf("capture failed: %w", err)
 	}
-	return img, nil
+	return Capture{img: img, xBound: rect.Right, yBound: Abs(rect.Top), xBoundForCalc: float64(rect.Right), yBoundForCalc: float64(Abs(rect.Top))}, nil
 }

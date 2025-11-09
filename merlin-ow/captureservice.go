@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"log"
+
+	// "log"
 	"os"
 	"os/signal"
 	"strings"
@@ -35,6 +36,14 @@ func NewCaptureService(overwatchService *OverwatchService) *CaptureService {
 
 func (c *CaptureService) SetApp(app *application.App) {
 	c.app = app
+}
+
+type Capture struct {
+	img           *image.RGBA
+	xBound        int32
+	yBound        int32
+	xBoundForCalc float64
+	yBoundForCalc float64
 }
 
 type GameState struct {
@@ -99,11 +108,13 @@ func (s Queue) String() string {
 	}
 }
 
-var qpColor = color.RGBA{R: 27, G: 79, B: 226, A: 255}
-var qpColorHover = color.RGBA{R: 28, G: 79, B: 226, A: 255}
+var qpColor = color.RGBA{R: 25, G: 79, B: 227, A: 255}
+
+// var qpColorHover = color.RGBA{R: 28, G: 79, B: 226, A: 255}
 var inQueueQPColor = color.RGBA{R: 9, G: 93, B: 222, A: 255}
-var compColor = color.RGBA{R: 182, G: 29, B: 71, A: 255}
-var compColorHover = color.RGBA{R: 183, G: 30, B: 72, A: 255}
+var compColor = color.RGBA{R: 182, G: 30, B: 72, A: 255}
+
+// var compColorHover = color.RGBA{R: 183, G: 30, B: 72, A: 255}
 var inQueueCompColor = color.RGBA{R: 208, G: 59, B: 97, A: 255}
 
 var mapScan = [31]string{
@@ -112,7 +123,7 @@ var mapScan = [31]string{
 	"ANTARCTIC PENINSULA",
 	"BUSAN",
 	"ILIOS",
-	"LIGJANG TOWER",
+	"LIJIANG TOWER",
 	"NEPAL",
 	"OASIS",
 	"SAMOA",
@@ -266,35 +277,46 @@ func (c *CaptureService) StopMonitoring() {
 }
 func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 
-	img, err := capture()
+	cap, err := capture()
 	if err != nil {
 		c.app.Event.Emit("error", err)
 		fmt.Println(err)
 		return false
 	}
 
-	queueColorSignifier := img.At(1350, 520)
-	inQueueColorSignifier := img.At(1100, 0)
+	queueColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.5901041666666667), int(cap.yBoundForCalc*0.4953703703703704))
+	queueSelectingColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.703125), int(cap.yBoundForCalc*0.4953703703703704))
+	inQueueColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.5729166666666667), 0)
 	// fmt.Println(queueColorSignifier)
 	// fmt.Println(inQueueColorSignifier)
-	switch queueColorSignifier {
-	case qpColor, qpColorHover:
+	if ColorMatch(qpColor, queueColorSignifier, 15000) || ColorMatch(qpColor, queueSelectingColorSignifier, 15000) {
 		c.app.Event.Emit("status-update", map[string]string{
 			"statusIcon": "../public/assets/selection.svg",
 			"statusText": "Selecting Role",
 			"message":    "Select your role(s) and game mode and I'll lock them in once you queue.",
 		})
-		c.updateSelections(img, QP, gameState)
-	case compColor, compColorHover:
+
+		gameState.Selector.Queue = QP
+		gameState.GameStatus = StatusSelection
+		fmt.Println(gameState.GameStatus.String())
+		fmt.Println(gameState.Selector.Queue.String())
+
+		c.updateSelections(cap, gameState)
+	} else if ColorMatch(compColor, queueColorSignifier, 15000) || ColorMatch(compColor, queueSelectingColorSignifier, 15000) {
 		c.app.Event.Emit("status-update", map[string]string{
 			"statusIcon": "../public/assets/selection.svg",
 			"statusText": "Selecting Role",
 			"message":    "Select your role(s) and game mode and I'll lock them in once you queue.",
 		})
-		c.updateSelections(img, Comp, gameState)
-	default:
-		switch inQueueColorSignifier {
-		case inQueueQPColor:
+
+		gameState.Selector.Queue = Comp
+		gameState.GameStatus = StatusSelection
+		fmt.Println(gameState.GameStatus.String())
+		fmt.Println(gameState.Selector.Queue.String())
+
+		c.updateSelections(cap, gameState)
+	} else {
+		if ColorMatch(inQueueQPColor, inQueueColorSignifier, 15000) {
 			c.app.Event.Emit("status-update", map[string]string{
 				"statusIcon": "../public/assets/in-queue.svg",
 				"statusText": "In Queue",
@@ -306,7 +328,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 			gameState.Filters.GameMode = "0"
 			c.estimateSelectionsOnEntry(gameState)
 			fmt.Println(gameState.GameStatus.String())
-		case inQueueCompColor:
+		} else if ColorMatch(inQueueCompColor, inQueueColorSignifier, 15000) {
 			c.app.Event.Emit("status-update", map[string]string{
 				"statusIcon": "../public/assets/in-queue.svg",
 				"statusText": "In Queue",
@@ -318,8 +340,8 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 			gameState.Filters.GameMode = "2"
 			c.estimateSelectionsOnEntry(gameState)
 			fmt.Println(gameState.GameStatus.String())
-		default:
-			processedImg, _ := processImage(img)
+		} else {
+			processedImg, _ := processImage(cap.img)
 			text, err := analyze(processedImg)
 			if err != nil {
 				fmt.Printf("Error in Text Analysis: %e", err)
@@ -342,8 +364,6 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 					"message":    "Detecting map vote result...It may take a few seconds for me to find the name of the map, so don't worry if this takes a bit",
 				})
 				c.app.Event.Emit("map-update", "Detecting Map...")
-			} else {
-				fmt.Println(gameState.GameStatus.String())
 			}
 		}
 
@@ -360,17 +380,17 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 	default:
 	}
 
-	img, err := capture()
+	cap, err := capture()
 	if err != nil {
 		return
 	}
 
-	queueColorSignifier := img.At(1350, 520)
-	inQueueColorSignifier := img.At(1100, 0)
+	queueColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.5901041666666667), int(cap.yBoundForCalc*0.4953703703703704))
+	queueSelectingColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.703125), int(cap.yBoundForCalc*0.4953703703703704))
+	inQueueColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.5729166666666667), 0)
 
-	switch queueColorSignifier {
-	case qpColor, qpColorHover:
-		if gameState.GameStatus != StatusSelection {
+	if ColorMatch(qpColor, queueColorSignifier, 15000) || ColorMatch(qpColor, queueSelectingColorSignifier, 15000) {
+		if gameState.GameStatus != StatusSelection || gameState.Selector.Queue == Comp {
 			c.app.Event.Emit("status-update", map[string]string{
 				"statusIcon": "../public/assets/selection.svg",
 				"statusText": "Selecting Role",
@@ -378,10 +398,15 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			})
 			c.app.Event.Emit("queue-update", "Waiting...")
 			c.app.Event.Emit("role-update", "Waiting...")
+
+			gameState.Selector.Queue = QP
+			gameState.GameStatus = StatusSelection
+			fmt.Println(gameState.GameStatus.String())
+			fmt.Println(gameState.Selector.Queue.String())
 		}
-		c.updateSelections(img, QP, gameState)
-	case compColor, compColorHover:
-		if gameState.GameStatus != StatusSelection {
+		c.updateSelections(cap, gameState)
+	} else if ColorMatch(compColor, queueColorSignifier, 15000) || ColorMatch(compColor, queueSelectingColorSignifier, 15000) {
+		if gameState.GameStatus != StatusSelection || gameState.Selector.Queue == QP {
 			c.app.Event.Emit("status-update", map[string]string{
 				"statusIcon": "../public/assets/selection.svg",
 				"statusText": "Selecting Role",
@@ -389,12 +414,16 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			})
 			c.app.Event.Emit("queue-update", "Waiting...")
 			c.app.Event.Emit("role-update", "Waiting...")
+
+			gameState.Selector.Queue = Comp
+			gameState.GameStatus = StatusSelection
+			fmt.Println(gameState.GameStatus.String())
+			fmt.Println(gameState.Selector.Queue.String())
 		}
-		c.updateSelections(img, Comp, gameState)
-	default:
+		c.updateSelections(cap, gameState)
+	} else {
 		if gameState.GameStatus == StatusSelection || gameState.GameStatus == StatusIdle {
-			switch inQueueColorSignifier {
-			case inQueueQPColor:
+			if ColorMatch(inQueueQPColor, inQueueColorSignifier, 15000) {
 				if gameState.GameStatus != StatusInQueue {
 					c.app.Event.Emit("status-update", map[string]string{
 						"statusIcon": "../public/assets/in-queue.svg",
@@ -405,7 +434,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 					c.app.Event.Emit("map-update", "Waiting for Match...")
 					c.confirmSelections("0", gameState)
 				}
-			case inQueueCompColor:
+			} else if ColorMatch(inQueueCompColor, inQueueColorSignifier, 15000) {
 				if gameState.GameStatus != StatusInQueue {
 					c.app.Event.Emit("status-update", map[string]string{
 						"statusIcon": "../public/assets/in-queue.svg",
@@ -416,12 +445,10 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 					c.app.Event.Emit("map-update", "Waiting for Match...")
 					c.confirmSelections("2", gameState)
 				}
-			default:
-				fmt.Println(gameState.GameStatus.String())
 			}
 		} else if gameState.GameStatus == StatusInQueue {
 			// enteringMatchAnalysisStart := time.Now()
-			processedImg, _ := processImage(img)
+			processedImg, _ := processImage(cap.img)
 			text, err := analyze(processedImg)
 			if err != nil {
 				fmt.Printf("Error in Text Analysis: %e", err)
@@ -438,12 +465,10 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				}
 				gameState.GameStatus = StatusMapVotingPhase
 				fmt.Println(gameState.GameStatus.String())
-			} else {
-				fmt.Println(gameState.GameStatus.String())
 			}
 			// fmt.Printf("	Pre Match Analysis: %v\n", time.Since(enteringMatchAnalysisStart))
 		} else if gameState.GameStatus == StatusMapVotingPhase {
-			processedImg, _ := processImage(img)
+			processedImg, _ := processImage(cap.img)
 			text, err := analyze(processedImg)
 			if err != nil {
 				fmt.Printf("Error in Text Analysis: %e", err)
@@ -469,24 +494,22 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 				for i := range len(mapScan) {
 					if strings.Contains(postVoteText, mapScan[i]) {
-						gameState.Filters.Map = mapFormat[mapScan[i]]
-						select {
-						case done <- struct{}{}:
-							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-							return // Exit evaluate immediately
-						default:
-							// Channel is full, someone else already sent
-							return
-						}
+						mapDetection(gameState, mapScan[i], done)
+						return
 					}
 				}
-				fmt.Println(gameState.GameStatus.String())
-			} else {
+
+				exception := mapExceptions(postVoteText)
+
+				if exception != "" {
+					mapDetection(gameState, exception, done)
+					return
+				}
 				fmt.Println(gameState.GameStatus.String())
 			}
 		} else if gameState.GameStatus == StatusBanningPhase {
 			if gameState.Filters.GameMode == "0" {
-				processedImg, _ := processImage(img)
+				processedImg, _ := processImage(cap.img)
 				text, err := analyze(processedImg)
 				if err != nil {
 					fmt.Printf("Error in Text Analysis: %e", err)
@@ -496,26 +519,26 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 				for i := range len(mapScan) {
 					if strings.Contains(text, mapScan[i]) {
-						gameState.Filters.Map = mapFormat[mapScan[i]]
-						select {
-						case done <- struct{}{}:
-							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-							return // Exit evaluate immediately
-						default:
-							// Channel is full, someone else already sent
-							return
-						}
+						mapDetection(gameState, mapScan[i], done)
+						return
 					}
 				}
 
-			} else {
-				processedImg, _ := processImage(img)
-				text, err := analyze(processedImg)
-				if err != nil {
-					fmt.Printf("Error in Text Analysis: %e", err)
+				exception := mapExceptions(text)
+
+				if exception != "" {
+					mapDetection(gameState, exception, done)
+					return
 				}
 
-				fmt.Println(text)
+			} else {
+				// processedImg, _ := processImage(cap.img)
+				// text, err := analyze(processedImg)
+				// if err != nil {
+				// 	fmt.Printf("Error in Text Analysis: %e", err)
+				// }
+
+				// fmt.Println(text)
 
 				mapTopCap, mapBotCap, err := captureMap()
 				if err != nil {
@@ -523,13 +546,13 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 					return
 				}
 
-				processedMapTopCap, _ := processImage(mapTopCap)
+				processedMapTopCap, _ := processImage(mapTopCap.img)
 				mapTopText, err := analyze(processedMapTopCap)
 				if err != nil {
 					fmt.Printf("Error in Text Analysis: %e", err)
 				}
 
-				processedMapBotCap, _ := processImage(mapBotCap)
+				processedMapBotCap, _ := processImage(mapBotCap.img)
 				mapBotText, err := analyze(processedMapBotCap)
 				if err != nil {
 					fmt.Printf("Error in Text Analysis: %e", err)
@@ -539,46 +562,44 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				fmt.Println(mapBotText)
 
 				for i := range len(mapScan) {
-					if strings.Contains(text, mapScan[i]) {
-						gameState.Filters.Map = mapFormat[mapScan[i]]
-						select {
-						case done <- struct{}{}:
-							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-							return // Exit evaluate immediately
-						default:
-							// Channel is full, someone else already sent
-							return
-						}
-					}
+					// if strings.Contains(text, mapScan[i]) {
+					// 	gameState.Filters.Map = mapFormat[mapScan[i]]
+					// 	select {
+					// 	case done <- struct{}{}:
+					// 		fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+					// 		return // Exit evaluate immediately
+					// 	default:
+					// 		// Channel is full, someone else already sent
+					// 		return
+					// 	}
+					// }
 
 					if strings.Contains(mapTopText, mapScan[i]) {
-						gameState.Filters.Map = mapFormat[mapScan[i]]
-						select {
-						case done <- struct{}{}:
-							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-							return // Exit evaluate immediately
-						default:
-							// Channel is full, someone else already sent
-							return
-						}
+						mapDetection(gameState, mapScan[i], done)
+						return
 					}
 
 					if strings.Contains(mapBotText, mapScan[i]) {
-						gameState.Filters.Map = mapFormat[mapScan[i]]
-						select {
-						case done <- struct{}{}:
-							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-							return // Exit evaluate immediately
-						default:
-							// Channel is full, someone else already sent
-							return
-						}
+						mapDetection(gameState, mapScan[i], done)
+						return
 					}
+				}
+
+				exception := mapExceptions(mapTopText)
+
+				if exception != "" {
+					mapDetection(gameState, exception, done)
+					return
+				}
+
+				exception = mapExceptions(mapBotText)
+
+				if exception != "" {
+					mapDetection(gameState, exception, done)
+					return
 				}
 			}
 
-		} else {
-			fmt.Println(gameState.GameStatus.String())
 		}
 	}
 
@@ -587,12 +608,8 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 	// }
 }
 
-func (c *CaptureService) updateSelections(img *image.RGBA, queueEnum Queue, gameState *GameState) {
-	gameState.Selector.Queue = queueEnum
-	gameState.GameStatus = StatusSelection
-	fmt.Println(gameState.GameStatus.String())
-	fmt.Println(gameState.Selector.Queue.String())
-	err := roleRecognition(img, gameState)
+func (c *CaptureService) updateSelections(cap Capture, gameState *GameState) {
+	err := roleRecognition(cap, gameState)
 	if err != nil {
 		fmt.Printf("Error in Role Recognition: %e", err)
 	}
@@ -704,14 +721,29 @@ func (c *CaptureService) estimateSelectionsOnEntry(gameState *GameState) {
 	}
 }
 
-func (c *CaptureService) removeFile(imagePath string) {
+func mapDetection(gameState *GameState, mapDetect string, done chan struct{}) {
 
-	err := os.Remove(imagePath)
-	if err != nil {
-		log.Fatalf("Error removing file: %v", err)
+	gameState.Filters.Map = mapFormat[mapDetect]
+	select {
+	case done <- struct{}{}:
+		fmt.Printf("Map detected: %s\n", mapFormat[mapDetect])
+		return // Exit evaluate immediately
+	default:
+		// Channel is full, someone else already sent
 		return
 	}
 
-	log.Printf("File %s removed successfully", imagePath)
+}
 
+// Temporary Fix for Map Text Recognition Issues
+func mapExceptions(text string) string {
+	if strings.Contains(text, "AICHENWALDE") || strings.Contains(text, "HICHENWALDE") {
+		return "EICHENWALDE"
+	} else if strings.Contains(text, "ISPERANCA") || strings.Contains(text, "FSPERANCA") {
+		return "ESPERANÇA"
+	} else if strings.Contains(text, "LUIANG TOWER") {
+		return "LIJIANG TOWER"
+	} else {
+		return ""
+	}
 }

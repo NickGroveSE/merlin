@@ -9,19 +9,19 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func capture() (*image.RGBA, error) {
+func capture() (Capture, error) {
 	windowTitle := "Overwatch" // 👈 change this to your target window title
 
-	img, err := captureWindowByTitle(windowTitle)
+	cap, err := captureWindowByTitle(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return nil, err
+		return Capture{}, err
 	}
 
-	return img, nil
+	return cap, nil
 }
 
-func captureWindowByTitle(title string) (*image.RGBA, error) {
+func captureWindowByTitle(title string) (Capture, error) {
 	// --- Load user32.dll ---
 	user32 := windows.NewLazySystemDLL("user32.dll")
 	procFindWindowW := user32.NewProc("FindWindowW")
@@ -31,7 +31,7 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 	titlePtr, _ := windows.UTF16PtrFromString(title)
 	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
 	if hwnd == 0 {
-		return nil, fmt.Errorf("window with title %q not found", title)
+		return Capture{}, fmt.Errorf("window with title %q not found", title)
 	}
 
 	// --- Get window rect ---
@@ -40,7 +40,7 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 	}
 	ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
 	if ret == 0 {
-		return nil, fmt.Errorf("failed to get window rect")
+		return Capture{}, fmt.Errorf("failed to get window rect")
 	}
 
 	// --- Calculate top-right quadrant ---
@@ -60,30 +60,30 @@ func captureWindowByTitle(title string) (*image.RGBA, error) {
 	// --- Capture that screen region ---
 	img, err := screenshot.CaptureRect(bounds)
 	if err != nil {
-		return nil, fmt.Errorf("capture failed: %w", err)
+		return Capture{}, fmt.Errorf("capture failed: %w", err)
 	}
-	return img, nil
+	return Capture{img: img, xBound: rect.Right, yBound: Abs(rect.Top), xBoundForCalc: float64(rect.Right), yBoundForCalc: float64(Abs(rect.Top))}, nil
 }
 
-func captureMap() (*image.RGBA, *image.RGBA, error) {
+func captureMap() (Capture, Capture, error) {
 	windowTitle := "Overwatch" // 👈 change this to your target window title
 
 	imgTop, err := captureWindowByTitleTopRight(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return nil, nil, err
+		return Capture{}, Capture{}, err
 	}
 
 	imgBot, err := captureWindowByTitleBotRight(windowTitle)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return nil, nil, err
+		return Capture{}, Capture{}, err
 	}
 
 	return imgTop, imgBot, nil
 }
 
-func captureWindowByTitleTopRight(title string) (*image.RGBA, error) {
+func captureWindowByTitleTopRight(title string) (Capture, error) {
 
 	// --- Load user32.dll ---
 	user32 := windows.NewLazySystemDLL("user32.dll")
@@ -94,7 +94,7 @@ func captureWindowByTitleTopRight(title string) (*image.RGBA, error) {
 	titlePtr, _ := windows.UTF16PtrFromString(title)
 	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
 	if hwnd == 0 {
-		return nil, fmt.Errorf("window with title %q not found", title)
+		return Capture{}, fmt.Errorf("window with title %q not found", title)
 	}
 
 	// --- Get window rect ---
@@ -103,7 +103,7 @@ func captureWindowByTitleTopRight(title string) (*image.RGBA, error) {
 	}
 	ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
 	if ret == 0 {
-		return nil, fmt.Errorf("failed to get window rect")
+		return Capture{}, fmt.Errorf("failed to get window rect")
 	}
 
 	// --- Calculate top-right quadrant ---
@@ -123,13 +123,13 @@ func captureWindowByTitleTopRight(title string) (*image.RGBA, error) {
 	// --- Capture that screen region ---
 	img, err := screenshot.CaptureRect(topRightBounds)
 	if err != nil {
-		return nil, fmt.Errorf("capture failed: %w", err)
+		return Capture{}, fmt.Errorf("capture failed: %w", err)
 	}
-	return img, nil
+	return Capture{img: img, xBound: rect.Right, yBound: Abs(rect.Top), xBoundForCalc: float64(rect.Right), yBoundForCalc: float64(Abs(rect.Top))}, nil
 
 }
 
-func captureWindowByTitleBotRight(title string) (*image.RGBA, error) {
+func captureWindowByTitleBotRight(title string) (Capture, error) {
 
 	// --- Load user32.dll ---
 	user32 := windows.NewLazySystemDLL("user32.dll")
@@ -140,7 +140,7 @@ func captureWindowByTitleBotRight(title string) (*image.RGBA, error) {
 	titlePtr, _ := windows.UTF16PtrFromString(title)
 	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
 	if hwnd == 0 {
-		return nil, fmt.Errorf("window with title %q not found", title)
+		return Capture{}, fmt.Errorf("window with title %q not found", title)
 	}
 
 	// --- Get window rect ---
@@ -149,7 +149,7 @@ func captureWindowByTitleBotRight(title string) (*image.RGBA, error) {
 	}
 	ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
 	if ret == 0 {
-		return nil, fmt.Errorf("failed to get window rect")
+		return Capture{}, fmt.Errorf("failed to get window rect")
 	}
 
 	// --- Calculate top-right quadrant ---
@@ -169,8 +169,8 @@ func captureWindowByTitleBotRight(title string) (*image.RGBA, error) {
 	// --- Capture that screen region ---
 	img, err := screenshot.CaptureRect(topRightBounds)
 	if err != nil {
-		return nil, fmt.Errorf("capture failed: %w", err)
+		return Capture{}, fmt.Errorf("capture failed: %w", err)
 	}
-	return img, nil
+	return Capture{img: img, xBound: rect.Right, yBound: Abs(rect.Top), xBoundForCalc: float64(rect.Right), yBoundForCalc: float64(Abs(rect.Top))}, nil
 
 }

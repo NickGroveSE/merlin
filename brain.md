@@ -43,7 +43,7 @@
             - ISPERANCA
             - FSPERANCA
         - Hanaoka ⏳
-        - Havana ⏳
+        - Havana ✅
         - Hollywood ✅
         - Ilios ⛔
         - Junkertown ✅
@@ -55,7 +55,7 @@
         - New Junk City ⛔
         - New Queen Street ⏳
         - Numbani ✅
-        - Oasis ⏳
+        - Oasis ✅
         - Paraiso ⛔
         - Rialto ✅
         - Route 66 ✅
