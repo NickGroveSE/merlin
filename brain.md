@@ -1,3 +1,4 @@
+~~
 - Role Recognition Restructuring
     - Gather Screenshots
         - Queue Pages Comp/QP Role Selection and Initial Screens (Account for Hover)
@@ -22,6 +23,8 @@
         - Check Support: 723x384 : Correction: ~1086x~587
         - Check Damage: 633x384 : Correction: ~801x~587
         - Check Tank: ? : Correcct: ~516x~587
+~~
+
 - Map Recognition Testing
 - Footer
     - Report an Issue
@@ -65,8 +68,9 @@
         - Suravasa ✅
         - Throne of Anubis ⏳
         - Watchpoint: Gibraltar ⏳
+
+~~
 - Image Recognition Issues:
     - Selection
         - Selector State is Late at times
-        
-        
+~~
