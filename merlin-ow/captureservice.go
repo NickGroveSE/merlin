@@ -279,8 +279,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 
 	cap, err := capture()
 	if err != nil {
-		c.app.Event.Emit("error", err)
-		fmt.Println(err)
+		c.app.Event.Emit("error", err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings")
 		return false
 	}
 
@@ -382,7 +381,15 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 	cap, err := capture()
 	if err != nil {
-		return
+		c.app.Event.Emit("error", err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings")
+		select {
+		case done <- struct{}{}:
+			fmt.Println("Exiting...Capture Error")
+			return // Exit evaluate immediately
+		default:
+			// Channel is full, someone else already sent
+			return
+		}
 	}
 
 	queueColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.5901041666666667), int(cap.yBoundForCalc*0.4953703703703704))

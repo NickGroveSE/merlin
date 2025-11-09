@@ -108,7 +108,7 @@
         <div class="tooltip-stat">Win Rate: {{ tooltip.data.WinRate }}%</div>
       </div>
     </div>
-    <div id="capture-btn" @click="startMonitoring">Capture Screen</div>
+    <div id="capture-btn" @click="startMonitoring">Monitor Screen</div>
   </div>
 </template>
 
@@ -118,6 +118,10 @@ export default {
   name: 'OverwatchScatterPlot',
   props: {
     heroData: Object,
+    error: {
+      type: String,
+      default: ''
+    }
   },
   data() {
     return {

@@ -36,9 +36,9 @@ export default {
           map: 'All Maps',
           region: 'Americas'
         },
-        message: "Messages with more in-depth status updates..."
-      },
-      captureError: ""
+        message: "Messages with more in-depth status updates...",
+        // error: ""
+      }
     }
   },
   mounted() {
@@ -105,16 +105,19 @@ export default {
       try {
         const result = await CaptureService.StartMonitoring();
         console.log('Service Result:', result);
-        this.heroData = result[0];
-        this.defaultFilters = {
-          role: result[1].role,
-          input: result[1].input,
-          gameMode: result[1].gameMode,
-          rankTier: result[1].rankTier,
-          map: result[1].map,
-          region: result[1].region
-        };
-        console.log(this.defaultFilters)
+        if (result[0].length !== 0) {
+          this.heroData = result[0];
+          this.defaultFilters = {
+            role: result[1].role,
+            input: result[1].input,
+            gameMode: result[1].gameMode,
+            rankTier: result[1].rankTier,
+            map: result[1].map,
+            region: result[1].region
+          };
+          console.log(this.defaultFilters)
+        }
+
       } catch (err) {
         console.error('Error Scraping:', err);
       } finally {
