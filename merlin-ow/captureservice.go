@@ -279,7 +279,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 
 	cap, err := capture()
 	if err != nil {
-		c.app.Event.Emit("error", err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings")
+		c.emitError(err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings", true, nil)
 		return false
 	}
 
@@ -343,6 +343,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 			processedImg, _ := processImage(cap.img)
 			text, err := analyze(processedImg)
 			if err != nil {
+				c.emitError(err.Error(), true, nil)
 				fmt.Printf("Error in Text Analysis: %e", err)
 			}
 
@@ -381,15 +382,8 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 
 	cap, err := capture()
 	if err != nil {
-		c.app.Event.Emit("error", err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings")
-		select {
-		case done <- struct{}{}:
-			fmt.Println("Exiting...Capture Error")
-			return // Exit evaluate immediately
-		default:
-			// Channel is full, someone else already sent
-			return
-		}
+		c.emitError(err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings", false, done)
+		return
 	}
 
 	queueColorSignifier := cap.img.At(int(cap.xBoundForCalc*0.5901041666666667), int(cap.yBoundForCalc*0.4953703703703704))
@@ -478,6 +472,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			processedImg, _ := processImage(cap.img)
 			text, err := analyze(processedImg)
 			if err != nil {
+				c.emitError(err.Error(), false, done)
 				fmt.Printf("Error in Text Analysis: %e", err)
 			}
 
@@ -496,6 +491,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				gameState.GameStatus = StatusBanningPhase
 				postVoteText, err := analyze(processedImg)
 				if err != nil {
+					c.emitError(err.Error(), false, done)
 					fmt.Printf("Error in Text Analysis: %e", err)
 				}
 
@@ -519,6 +515,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				processedImg, _ := processImage(cap.img)
 				text, err := analyze(processedImg)
 				if err != nil {
+					c.emitError(err.Error(), false, done)
 					fmt.Printf("Error in Text Analysis: %e", err)
 				}
 
@@ -539,29 +536,32 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				}
 
 			} else {
-				// processedImg, _ := processImage(cap.img)
-				// text, err := analyze(processedImg)
-				// if err != nil {
-				// 	fmt.Printf("Error in Text Analysis: %e", err)
-				// }
+				processedImg, _ := processImage(cap.img)
+				text, err := analyze(processedImg)
+				if err != nil {
+					c.emitError(err.Error(), false, done)
+					fmt.Printf("Error in Text Analysis: %e", err)
+				}
 
-				// fmt.Println(text)
+				fmt.Println(text)
 
 				mapTopCap, mapBotCap, err := captureMap()
 				if err != nil {
-					fmt.Println(err)
+					c.emitError(err.Error()+"\n\nAn error occured while monitoring your screen, make sure Overwatch is running and set to 'Borderless Windowed' in the visual settings", false, done)
 					return
 				}
 
 				processedMapTopCap, _ := processImage(mapTopCap.img)
 				mapTopText, err := analyze(processedMapTopCap)
 				if err != nil {
+					c.emitError(err.Error(), false, done)
 					fmt.Printf("Error in Text Analysis: %e", err)
 				}
 
 				processedMapBotCap, _ := processImage(mapBotCap.img)
 				mapBotText, err := analyze(processedMapBotCap)
 				if err != nil {
+					c.emitError(err.Error(), false, done)
 					fmt.Printf("Error in Text Analysis: %e", err)
 				}
 
@@ -569,17 +569,17 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 				fmt.Println(mapBotText)
 
 				for i := range len(mapScan) {
-					// if strings.Contains(text, mapScan[i]) {
-					// 	gameState.Filters.Map = mapFormat[mapScan[i]]
-					// 	select {
-					// 	case done <- struct{}{}:
-					// 		fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
-					// 		return // Exit evaluate immediately
-					// 	default:
-					// 		// Channel is full, someone else already sent
-					// 		return
-					// 	}
-					// }
+					if strings.Contains(text, mapScan[i]) {
+						gameState.Filters.Map = mapFormat[mapScan[i]]
+						select {
+						case done <- struct{}{}:
+							fmt.Printf("Map detected: %s\n", mapFormat[mapScan[i]])
+							return // Exit evaluate immediately
+						default:
+							// Channel is full, someone else already sent
+							return
+						}
+					}
 
 					if strings.Contains(mapTopText, mapScan[i]) {
 						mapDetection(gameState, mapScan[i], done)
@@ -725,6 +725,24 @@ func (c *CaptureService) estimateSelectionsOnEntry(gameState *GameState) {
 		gameState.Filters.Role = "Support"
 		c.app.Event.Emit("message", "Oops! Looks like I couldn't detect your role. I will make you Support as a default right now, but once we have collected the other match data for you, you'll be able to pick what role you end up with in the filters")
 		c.app.Event.Emit("role-update", "Support")
+	}
+}
+
+// Exiting Utility Functions for Reusability
+func (c *CaptureService) emitError(errString string, onEntry bool, done chan struct{}) {
+	if onEntry {
+		c.app.Event.Emit("error", errString)
+		return
+	} else {
+		c.app.Event.Emit("error", errString)
+		select {
+		case done <- struct{}{}:
+			fmt.Println("Exiting...Capture Error")
+			return // Exit evaluate immediately
+		default:
+			// Channel is full, someone else already sent
+			return
+		}
 	}
 }
 

@@ -24,6 +24,9 @@
         - Check Damage: 633x384 : Correction: ~801x~587
         - Check Tank: ? : Correcct: ~516x~587
 
+- Error Coverage: (Done Temporarily)
+    - Capture ✅
+    - Text Analysis ✅
 
 - Map Recognition Testing
 - Footer
