@@ -1,5 +1,5 @@
-<span style="color:gray; text-decoration:line-through;">
-- Role Recognition Restructuring
+
+- Role Recognition Restructuring (Done)
     - Gather Screenshots
         - Queue Pages Comp/QP Role Selection and Initial Screens (Account for Hover)
             - Comp Initial Page
@@ -23,7 +23,7 @@
         - Check Support: 723x384 : Correction: ~1086x~587
         - Check Damage: 633x384 : Correction: ~801x~587
         - Check Tank: ? : Correcct: ~516x~587
-</span>
+
 
 - Map Recognition Testing
 - Footer
@@ -69,8 +69,6 @@
         - Throne of Anubis ⏳
         - Watchpoint: Gibraltar ⏳
 
-~~
-- Image Recognition Issues:
+- Image Recognition Issues: (Dropped Temporarily)
     - Selection
         - Selector State is Late at times
-~~
