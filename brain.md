@@ -59,7 +59,7 @@
         - Midtown ✅
         - Nepal ✅
         - New Junk City ⛔
-        - New Queen Street ⏳
+        - New Queen Street ✅
         - Numbani ✅
         - Oasis ✅
         - Paraiso ⛔
@@ -70,7 +70,7 @@
         - Shambali Monastery ✅
         - Suravasa ✅
         - Throne of Anubis ⏳
-        - Watchpoint: Gibraltar ⏳
+        - Watchpoint: Gibraltar ✅
 
 - Image Recognition Issues: (Dropped Temporarily)
     - Selection

@@ -14,14 +14,6 @@ import (
 
 func analyze(img image.Image) (string, error) {
 
-	// replacer := strings.NewReplacer(
-	// 	" ", "-",
-	// 	" ", "-",
-	// 	"ú", "u",
-	// 	":", "",
-	// 	"ö", "o",
-	// )
-
 	tmpFile, err := ioutil.TempFile("", "ocr-*.png")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
@@ -36,60 +28,37 @@ func analyze(img image.Image) (string, error) {
 	}
 	tmpFile.Close()
 
-	// Then replace your existing code with:
 	tesseractPath := getTesseractPath()
+	// fmt.Println("Using tesseract at:", tesseractPath)
+	// fmt.Println("Tesseract exists:", fileExists(tesseractPath))
 
-	// Set environment so tesseract finds its data files
 	exePath, _ := os.Executable()
 	exeDir := filepath.Dir(exePath)
-	os.Setenv("TESSDATA_PREFIX", filepath.Join(exeDir, "tesseract"))
+	tessdataPath := filepath.Join(exeDir, "tesseract", "tessdata")
+	// log.Println("Executable path:", exePath)
+	// log.Println("Executable dir:", exeDir)
+	// fmt.Println("Tessdata exists:", fileExists(tessdataPath))
 
-	// Call tesseract directly
 	cmd := exec.Command(tesseractPath, tmpPath, "stdout")
+	cmd.Env = append(os.Environ(), "TESSDATA_PREFIX="+tessdataPath)
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal("OCR failed:", err)
 	}
 
 	text := strings.TrimSpace(string(output))
-	// fmt.Println("🧠 OCR Result:")
-	// fmt.Println(text)
-
-	// votingKeywords := []string{"VOTE", "MAP"}
-	// for _, keyword := range votingKeywords {
-	// 	if strings.Contains(text, keyword) {
-	// 		fmt.Printf("Found keyword: %s\n", keyword)
-	// 	}
-	// }
 
 	return text, nil
 
-	// filePath := "logs/output.txt"
-	// timestamp := time.Now().Format("2006-01-02_15-04-05")
-	// ocrResult := fmt.Sprintf("🧠 OCR Result:\n%s\n\n%s\n\n", timestamp, text)
-	// content := []byte(ocrResult)
-
-	// err = os.WriteFile(filePath, content, 0644) // 0644 sets read/write permissions for owner, read-only for others
-	// if err != nil {
-	// 	log.Fatalf("Error writing to file: %v", err)
-	// }
-
-	// fmt.Println("Content successfully written to output.txt")
 }
 
 func getTesseractPath() string {
-	exePath, err := os.Executable()
-	if err != nil {
-		return "tesseract" // fallback for dev mode
-	}
-
+	exePath, _ := os.Executable()
 	exeDir := filepath.Dir(exePath)
-	tesseractPath := filepath.Join(exeDir, "tesseract", "tesseract.exe")
+	return filepath.Join(exeDir, "tesseract", "tesseract.exe")
+}
 
-	// Check if bundled version exists
-	if _, err := os.Stat(tesseractPath); err == nil {
-		return tesseractPath // use bundled version
-	}
-
-	return "tesseract" // fallback to system version
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

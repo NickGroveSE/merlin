@@ -716,9 +716,7 @@ func (c *CaptureService) estimateSelectionsOnEntry(gameState *GameState) {
 		c.app.Event.Emit("role-update", "Support")
 	} else {
 		fmt.Println("Role Selection Couldn't Be Detected")
-		gameState.Filters.Role = "Support"
-		c.app.Event.Emit("message", "Oops! Looks like I couldn't detect your role. I will make you Support as a default right now, but once we have collected the other match data for you, you'll be able to pick what role you end up with in the filters")
-		c.app.Event.Emit("role-update", "Support")
+		c.app.Event.Emit("message", "Oops! Looks like I couldn't detect your role. I will make it your last played role for now, but once we have collected the other match data for you, you'll be able to pick what role you end up with in the filters")
 	}
 }
 
