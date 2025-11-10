@@ -17,8 +17,8 @@ export function SetApp(app: application$0.App | null): $CancellablePromise<void>
     return $Call.ByID(675474388, app);
 }
 
-export function StartMonitoring(): $CancellablePromise<[$models.OWHero[], $models.OverwatchFilters]> {
-    return $Call.ByID(1671332703).then(($result: any) => {
+export function StartMonitoring(initialFilters: $models.OverwatchFilters): $CancellablePromise<[$models.OWHero[], $models.OverwatchFilters]> {
+    return $Call.ByID(1671332703, initialFilters).then(($result: any) => {
         $result[0] = $$createType1($result[0]);
         $result[1] = $$createType2($result[1]);
         return $result;

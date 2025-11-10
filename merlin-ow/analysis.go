@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,8 +36,16 @@ func analyze(img image.Image) (string, error) {
 	}
 	tmpFile.Close()
 
+	// Then replace your existing code with:
+	tesseractPath := getTesseractPath()
+
+	// Set environment so tesseract finds its data files
+	exePath, _ := os.Executable()
+	exeDir := filepath.Dir(exePath)
+	os.Setenv("TESSDATA_PREFIX", filepath.Join(exeDir, "tesseract"))
+
 	// Call tesseract directly
-	cmd := exec.Command("tesseract", tmpPath, "stdout")
+	cmd := exec.Command(tesseractPath, tmpPath, "stdout")
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal("OCR failed:", err)
@@ -66,4 +75,21 @@ func analyze(img image.Image) (string, error) {
 	// }
 
 	// fmt.Println("Content successfully written to output.txt")
+}
+
+func getTesseractPath() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "tesseract" // fallback for dev mode
+	}
+
+	exeDir := filepath.Dir(exePath)
+	tesseractPath := filepath.Join(exeDir, "tesseract", "tesseract.exe")
+
+	// Check if bundled version exists
+	if _, err := os.Stat(tesseractPath); err == nil {
+		return tesseractPath // use bundled version
+	}
+
+	return "tesseract" // fallback to system version
 }

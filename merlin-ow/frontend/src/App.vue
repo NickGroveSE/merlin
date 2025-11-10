@@ -85,6 +85,7 @@ export default {
   methods: {
     async handleFiltersApplied(filters) {
       console.log('Filters received in App.vue:', filters);
+      this.defaultFilters = filters;
       
       this.loading = true;
       try {
@@ -103,7 +104,7 @@ export default {
       this.loading = true;
       this.monitoring = true;
       try {
-        const result = await CaptureService.StartMonitoring();
+        const result = await CaptureService.StartMonitoring(this.defaultFilters);
         console.log('Service Result:', result);
         if (result[0].length !== 0) {
           this.heroData = result[0];

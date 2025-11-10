@@ -187,7 +187,9 @@ var mapFormat = map[string]string{
 
 var defaultStatusMessage = "Messages with more in-depth status updates..."
 
-func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
+func (c *CaptureService) StartMonitoring(initialFilters OverwatchFilters) ([]OWHero, OverwatchFilters, error) {
+
+	fmt.Println(initialFilters)
 
 	c.mu.Lock()
 	if c.isRunning {
@@ -217,14 +219,8 @@ func (c *CaptureService) StartMonitoring() ([]OWHero, OverwatchFilters, error) {
 
 	gameState := GameState{
 		GameStatus: StatusIdle,
-		Filters: OverwatchFilters{
-			Role:     "Support",
-			Input:    "PC",
-			GameMode: "2",
-			RankTier: "All",
-			Map:      "all-maps",
-			Region:   "Americas"},
-		Selector: Selector{},
+		Filters:    initialFilters,
+		Selector:   Selector{},
 	}
 
 	counter := 0
@@ -290,7 +286,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 	// fmt.Println(inQueueColorSignifier)
 	if ColorMatch(qpColor, queueColorSignifier, 15000) || ColorMatch(qpColor, queueSelectingColorSignifier, 15000) {
 		c.app.Event.Emit("status-update", map[string]string{
-			"statusIcon": "../public/assets/selection.svg",
+			"statusIcon": "./assets/selection.svg",
 			"statusText": "Selecting Role",
 			"message":    "Select your role(s) and game mode and I'll lock them in once you queue.",
 		})
@@ -303,7 +299,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 		c.updateSelections(cap, gameState)
 	} else if ColorMatch(compColor, queueColorSignifier, 15000) || ColorMatch(compColor, queueSelectingColorSignifier, 15000) {
 		c.app.Event.Emit("status-update", map[string]string{
-			"statusIcon": "../public/assets/selection.svg",
+			"statusIcon": "./assets/selection.svg",
 			"statusText": "Selecting Role",
 			"message":    "Select your role(s) and game mode and I'll lock them in once you queue.",
 		})
@@ -317,7 +313,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 	} else {
 		if ColorMatch(inQueueQPColor, inQueueColorSignifier, 15000) {
 			c.app.Event.Emit("status-update", map[string]string{
-				"statusIcon": "../public/assets/in-queue.svg",
+				"statusIcon": "./assets/in-queue.svg",
 				"statusText": "In Queue",
 				"message":    "",
 			})
@@ -329,7 +325,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 			fmt.Println(gameState.GameStatus.String())
 		} else if ColorMatch(inQueueCompColor, inQueueColorSignifier, 15000) {
 			c.app.Event.Emit("status-update", map[string]string{
-				"statusIcon": "../public/assets/in-queue.svg",
+				"statusIcon": "./assets/in-queue.svg",
 				"statusText": "In Queue",
 				"message":    "",
 			})
@@ -349,7 +345,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 
 			if strings.Contains(text, "VOTE") && strings.Contains(text, "MAP") {
 				c.app.Event.Emit("status-update", map[string]string{
-					"statusIcon": "../public/assets/map-voting.svg",
+					"statusIcon": "./assets/map-voting.svg",
 					"statusText": "Map Voting",
 					"message":    "I see you've entered a match! I'll collect our final data needed after the map vote",
 				})
@@ -359,7 +355,7 @@ func (c *CaptureService) determineEntryPoint(gameState *GameState) bool {
 				gameState.GameStatus = StatusBanningPhase
 				fmt.Println(gameState.GameStatus.String())
 				c.app.Event.Emit("status-update", map[string]string{
-					"statusIcon": "../public/assets/banning-phase.svg",
+					"statusIcon": "./assets/banning-phase.svg",
 					"statusText": "Bans Phase",
 					"message":    "Detecting map vote result...It may take a few seconds for me to find the name of the map, so don't worry if this takes a bit",
 				})
@@ -393,7 +389,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 	if ColorMatch(qpColor, queueColorSignifier, 15000) || ColorMatch(qpColor, queueSelectingColorSignifier, 15000) {
 		if gameState.GameStatus != StatusSelection || gameState.Selector.Queue == Comp {
 			c.app.Event.Emit("status-update", map[string]string{
-				"statusIcon": "../public/assets/selection.svg",
+				"statusIcon": "./assets/selection.svg",
 				"statusText": "Selecting Role",
 				"message":    "Select your role(s) and game mode and I'll lock them in once you queue.",
 			})
@@ -409,7 +405,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 	} else if ColorMatch(compColor, queueColorSignifier, 15000) || ColorMatch(compColor, queueSelectingColorSignifier, 15000) {
 		if gameState.GameStatus != StatusSelection || gameState.Selector.Queue == QP {
 			c.app.Event.Emit("status-update", map[string]string{
-				"statusIcon": "../public/assets/selection.svg",
+				"statusIcon": "./assets/selection.svg",
 				"statusText": "Selecting Role",
 				"message":    "Select your role(s) and game mode and I'll will lock them in once you queue.",
 			})
@@ -427,7 +423,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			if ColorMatch(inQueueQPColor, inQueueColorSignifier, 15000) {
 				if gameState.GameStatus != StatusInQueue {
 					c.app.Event.Emit("status-update", map[string]string{
-						"statusIcon": "../public/assets/in-queue.svg",
+						"statusIcon": "./assets/in-queue.svg",
 						"statusText": "In Queue",
 						"message":    defaultStatusMessage,
 					})
@@ -438,7 +434,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			} else if ColorMatch(inQueueCompColor, inQueueColorSignifier, 15000) {
 				if gameState.GameStatus != StatusInQueue {
 					c.app.Event.Emit("status-update", map[string]string{
-						"statusIcon": "../public/assets/in-queue.svg",
+						"statusIcon": "./assets/in-queue.svg",
 						"statusText": "In Queue",
 						"message":    defaultStatusMessage,
 					})
@@ -458,7 +454,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			if strings.Contains(text, "VOTE") && strings.Contains(text, "MAP") {
 				if gameState.GameStatus != StatusMapVotingPhase {
 					c.app.Event.Emit("status-update", map[string]string{
-						"statusIcon": "../public/assets/map-voting.svg",
+						"statusIcon": "./assets/map-voting.svg",
 						"statusText": "Map Voting",
 						"message":    "I see you've entered a match! I'll collect our final data needed after the map vote",
 					})
@@ -481,7 +477,7 @@ func (c *CaptureService) evaluate(counter int, gameState *GameState, done chan s
 			if strings.Contains(text, "RESULT") {
 				if gameState.GameStatus != StatusBanningPhase {
 					c.app.Event.Emit("status-update", map[string]string{
-						"statusIcon": "../public/assets/banning-phase.svg",
+						"statusIcon": "./assets/banning-phase.svg",
 						"statusText": "Bans Phase",
 						"message":    "Detecting map vote result...It may take a few seconds for me to find the name of the map, so don't worry if this takes a bit",
 					})
@@ -668,9 +664,7 @@ func (c *CaptureService) confirmSelections(queueQueryParam string, gameState *Ga
 			c.app.Event.Emit("role-update", "Support")
 		} else {
 			fmt.Println("Role Selection Couldn't Be Detected")
-			gameState.Filters.Role = "Support"
-			c.app.Event.Emit("message", "Oops! Looks like I couldn't detect your role. I will make you Support as a default right now, but once we have collected the other match data for you, you'll be able to pick what role you end up with in the filters")
-			c.app.Event.Emit("role-update", "Support")
+			c.app.Event.Emit("message", "Oops! Looks like I couldn't detect your role. I will make it your last played role for now, but once we have collected the other match data for you, you'll be able to pick what role you end up with in the filters")
 		}
 	case StatusIdle:
 		gameState.GameStatus = StatusInQueue
