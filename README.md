@@ -1,6 +1,8 @@
 # Merlin
 
-## Game State
+![idle page](docs_assets/application-screenshot-1.png)
+
+## Game State Tracking
 
 ### Status Tree & Outline
 
