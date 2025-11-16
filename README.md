@@ -2,6 +2,12 @@
 
 ![idle page](docs_assets/application-screenshot-1.png)
 
+## Links
+
+[Our Main Site](https://metatrack.ing/)
+[Merlin Early Access Installation, Setup, & Demo](https://youtu.be/IR2b70qayg8?si=LDBm3qtSJjli2AD2)
+[Discord](https://discord.gg/nhpjrx4P)
+
 ## Game State Tracking
 
 ### Status Tree & Outline
