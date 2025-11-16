@@ -2,11 +2,15 @@
 
 ![idle page](docs_assets/application-screenshot-1.png)
 
+## Special Thanks
+
+Just have to shoutout a couple of open source projects I could not accomplish this project without. Thank you to everyone apart of [Wails](https://v3alpha.wails.io/), they have made an amazing framework for building desktop applications with Go, it is the best framework I have ever worked with in any language. Also [kbinani's Screenshot Library](https://github.com/kbinani/screenshot), did wonders for me being able to monitor the Overwatch window and in turn made building this project 1000x easier.
+
 ## Links
 
-[Our Main Site](https://metatrack.ing/)
-[Merlin Early Access Installation, Setup, & Demo](https://youtu.be/IR2b70qayg8?si=LDBm3qtSJjli2AD2)
-[Discord](https://discord.gg/nhpjrx4P)
+[Our Main Site](https://metatrack.ing/) <br>
+[Merlin Early Access Installation, Setup, & Demo](https://youtu.be/IR2b70qayg8?si=LDBm3qtSJjli2AD2) <br>
+[Discord](https://discord.gg/nhpjrx4P) <br>
 
 ## Game State Tracking
 
