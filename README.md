@@ -1,6 +1,8 @@
 # Merlin
 
-![idle page](docs_assets/application-screenshot-1.png)
+![monitoring page](docs_assets/application-screenshot-monitoring.png)
+
+![idle page](docs_assets/application-screenshot-idle.png)
 
 ## Special Thanks
 
