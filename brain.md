@@ -1,3 +1,14 @@
+#### Current Work
+
+0.2.0 Deliverables
+- Messaging Rebuild
+- Tesseract Embed into Binary
+- Map Recognition Testing Continuously
+- Footer
+    - Report an Issue
+    - Donate
+
+#### Past Work
 
 - Role Recognition Restructuring (Done)
     - Gather Screenshots
@@ -28,10 +39,7 @@
     - Capture ✅
     - Text Analysis ✅
 
-- Map Recognition Testing
-- Footer
-    - Report an Issue
-    - Donate
+
 
 - Text Recognition Issues:
     - Maps 

@@ -762,6 +762,8 @@ func mapExceptions(text string) string {
 		return "LIJIANG TOWER"
 	} else if strings.Contains(text, "paraiso") {
 		return "PARAÍSO"
+	} else if strings.Contains(text, "11/08") || strings.Contains(text, "11/05") {
+		return "ILIOS"
 	} else {
 		return ""
 	}
