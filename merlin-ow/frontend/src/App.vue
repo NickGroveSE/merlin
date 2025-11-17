@@ -26,7 +26,7 @@ export default {
       loading: false,
       monitoring: false,
       status: {
-        icon: "../public/assets/idle.svg",
+        icon: "./assets/idle.svg",
         statusText: "Idle",
         gameData: {
           input: 'PC',
@@ -48,16 +48,10 @@ export default {
     Events.On('status-update', (data) => {
       this.status.icon = data.data[0].statusIcon
       this.status.statusText = data.data[0].statusText
-      this.status.message = data.data[0].message
-
-      // console.log("Made It Here")
-      // console.log(data.data[0].statusText)
     });
 
     Events.On('message', (data) => {
       this.status.message = data.data[0]
-
-      // console.log(message)
     })
 
     Events.On('queue-update', (data) => {

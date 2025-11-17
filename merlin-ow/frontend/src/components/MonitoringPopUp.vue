@@ -74,7 +74,7 @@ export default {
     },
     statusIcon: {
       type: String,
-      default: ''
+      default: './assets/idle.svg'
     },
     gameData: {
       type: Object,
